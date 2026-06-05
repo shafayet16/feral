@@ -53,18 +53,15 @@ export default function Home() {
         </h2>
       </section>
 
-      {/* 4. PRODUCT SLIDESHOW (Perfect Flush Grid, No Scroll Hijacking) */}
+      {/* 4. PRODUCT SLIDESHOW */}
       <section className="w-full bg-[#0a0a0a] py-12 md:py-16 border-b border-[#52525b]/20 overflow-hidden">
         <p className="text-center text-[10px] md:text-xs text-[#d4d4d8] font-bold tracking-[0.2em] uppercase mb-8 opacity-40">
           Product slideshow
         </p>
         
-        {/* The Marquee Wrapper */}
         <div className="animate-marquee cursor-pointer">
-          {/* We map twice to create the seamless infinite loop */}
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex">
-              {/* Exactly 50vw on mobile (2 per row), 25vw on desktop (4 per row). Edge-to-edge flush borders. */}
               <div className="w-[50vw] md:w-[25vw] aspect-[4/5] bg-[#52525b]/10 border-r border-y border-[#52525b]/30 flex items-center justify-center text-xs tracking-widest text-[#a1a1aa] flex-shrink-0">IMAGE_01</div>
               <div className="w-[50vw] md:w-[25vw] aspect-[4/5] bg-[#52525b]/10 border-r border-y border-[#52525b]/30 flex items-center justify-center text-xs tracking-widest text-[#a1a1aa] flex-shrink-0">IMAGE_02</div>
               <div className="w-[50vw] md:w-[25vw] aspect-[4/5] bg-[#52525b]/10 border-r border-y border-[#52525b]/30 flex items-center justify-center text-xs tracking-widest text-[#a1a1aa] flex-shrink-0">IMAGE_03</div>
@@ -107,20 +104,20 @@ export default function Home() {
       </section>
 
       {/* 8. CATEGORY BANNERS / BOTTOM INTERFACE */}
-      <section className="w-full grid grid-cols-5 text-center text-[10px] md:text-sm font-black uppercase tracking-wider bg-[#0a0a0a] border-b border-[#52525b]/20 items-stretch min-h-[15vh]">
-        <div className="bg-[#52525b]/10 border-r border-[#52525b]/20 text-[#a1a1aa] flex items-center justify-center p-2 md:p-4 font-normal leading-snug">
+      <section className="w-full grid grid-cols-5 text-center text-[8px] min-[380px]:text-[10px] md:text-sm font-black uppercase tracking-wide bg-[#0a0a0a] border-b border-[#52525b]/20 items-stretch min-h-[15vh]">
+        <div className="bg-[#52525b]/10 border-r border-[#52525b]/20 text-[#a1a1aa] flex items-center justify-center px-1 py-3 md:p-4 font-normal leading-tight text-[7.5px] min-[380px]:text-[9px] md:text-xs">
           fluid gradient design
         </div>
-        <button className="border-r border-[#52525b]/20 flex items-center justify-center p-2 md:p-4 text-[#d4d4d8] hover:bg-[#52525b]/10 transition w-full h-full">
+        <button className="border-r border-[#52525b]/20 flex items-center justify-center px-1 py-3 md:p-4 text-[#d4d4d8] hover:bg-[#52525b]/10 transition w-full h-full whitespace-nowrap overflow-hidden text-ellipsis">
           BESTSELLERS
         </button>
-        <button className="border-r border-[#52525b]/20 flex items-center justify-center p-2 md:p-4 text-[#f4f4f5] hover:bg-[#52525b]/10 transition w-full h-full">
+        <button className="border-r border-[#52525b]/20 flex items-center justify-center px-1 py-3 md:p-4 text-[#f4f4f5] hover:bg-[#52525b]/10 transition w-full h-full whitespace-nowrap overflow-hidden text-ellipsis">
           TOPS
         </button>
-        <button className="border-r border-[#52525b]/20 flex items-center justify-center p-2 md:p-4 text-[#d4d4d8] hover:bg-[#52525b]/10 transition w-full h-full">
+        <button className="border-r border-[#52525b]/20 flex items-center justify-center px-1 py-3 md:p-4 text-[#d4d4d8] hover:bg-[#52525b]/10 transition w-full h-full whitespace-nowrap overflow-hidden text-ellipsis">
           PANTS
         </button>
-        <div className="bg-[#52525b]/10 text-[#a1a1aa] flex items-center justify-center p-2 md:p-4 font-normal leading-snug">
+        <div className="bg-[#52525b]/10 text-[#a1a1aa] flex items-center justify-center px-1 py-3 md:p-4 font-normal leading-tight text-[7.5px] min-[380px]:text-[9px] md:text-xs">
           fluid gradient design
         </div>
       </section>
@@ -146,15 +143,15 @@ export default function Home() {
       </section>
 
       {/* 10. FOOTER ATTRIBUTION */}
-      <footer className="w-full bg-[#0a0a0a] pt-10 pb-12 text-center flex flex-col items-center">
-        <div className="w-[90%] max-w-4xl h-[1px] bg-[#52525b]/20 mb-8"></div>
-        <div className="flex gap-4 mb-6">
-          <a href="#" className="w-10 h-10 bg-[#f4f4f5] text-[#0a0a0a] flex items-center justify-center font-bold text-sm rounded-none hover:bg-[#d4d4d8] transition">ig</a>
-          <a href="#" className="w-10 h-10 bg-[#f4f4f5] text-[#0a0a0a] flex items-center justify-center font-bold text-sm rounded-none hover:bg-[#d4d4d8] transition">fb</a>
+      <footer className="w-full bg-[#0a0a0a] pt-12 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
+        <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
+        <div className="flex gap-6 mb-8">
+          <a href="#" className="w-12 h-12 bg-transparent text-[#f4f4f5] border border-[#52525b]/30 hover:border-white flex items-center justify-center font-bold text-xs uppercase hover:bg-white hover:text-[#0a0a0a] transition-all duration-300 hover:-translate-y-0.5">ig</a>
+          <a href="#" className="w-12 h-12 bg-transparent text-[#f4f4f5] border border-[#52525b]/30 hover:border-white flex items-center justify-center font-bold text-xs uppercase hover:bg-white hover:text-[#0a0a0a] transition-all duration-300 hover:-translate-y-0.5">fb</a>
         </div>
-        <div className="leading-relaxed text-[10px] md:text-xs tracking-widest text-[#a1a1aa] uppercase space-y-1.5">
-          <p>© 2026 FERAL. All rights reserved.</p>
-          <p className="text-[#52525b] font-normal lowercase tracking-normal">made by shafbitz</p>
+        <div className="leading-relaxed text-[10px] md:text-xs tracking-[0.25em] text-[#52525b] uppercase space-y-2">
+          <p className="font-bold text-[#71717a]">© 2026 FERAL. All rights reserved.</p>
+          <p className="text-[9px] font-mono lowercase tracking-normal text-[#52525b]/70">made by shafbitz</p>
         </div>
       </footer>
 
