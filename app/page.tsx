@@ -1,3 +1,4 @@
+import MobileMenu from './MobileMenu';
 export default function Home() {
   return (
     <div className="min-h-[100dvh] w-full bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased selection:bg-[#d4d4d8] selection:text-[#0a0a0a] overflow-x-hidden">
@@ -31,17 +32,14 @@ export default function Home() {
         }
       `}} />
 
-      {/* 1. HEADER - FULLY RESPONSIVE */}
+            {/* 1. HEADER - FULLY RESPONSIVE */}
       <header className="sticky top-0 z-50 w-full bg-[#0a0a0a]/95 backdrop-blur-md border-b border-[#52525b]/20">
         <div className="px-4 py-4 md:px-8">
           {/* Mobile Layout */}
           <div className="flex items-center justify-between md:hidden">
             <div className="w-8">
-              <button className="flex flex-col gap-1.5 w-6 h-6 justify-center items-start group transition-all duration-300 active:scale-95">
-                <span className="w-6 h-[2px] bg-[#f4f4f5] transition-all duration-300 group-hover:w-4 group-active:w-3"></span>
-                <span className="w-4 h-[2px] bg-[#f4f4f5] transition-all duration-300 group-hover:w-6 group-active:w-7"></span>
-                <span className="w-5 h-[2px] bg-[#f4f4f5] transition-all duration-300 group-hover:w-3 group-active:w-2"></span>
-              </button>
+              {/* REPLACED with MobileMenu component */}
+              <MobileMenu />
             </div>
             <div className="absolute left-1/2 transform -translate-x-1/2 transition-all duration-300 hover:scale-105 active:scale-95">
               <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto object-contain" />
@@ -62,12 +60,10 @@ export default function Home() {
           
           {/* Desktop Layout - Logo centered, with hamburger on left */}
           <div className="hidden md:flex items-center justify-between">
-            {/* Left: Hamburger Menu */}
-            <button className="flex flex-col gap-1.5 w-6 h-6 justify-center items-start group transition-all duration-300 active:scale-95">
-              <span className="w-6 h-[2px] bg-[#f4f4f5] transition-all duration-300 group-hover:w-4 group-active:w-3"></span>
-              <span className="w-4 h-[2px] bg-[#f4f4f5] transition-all duration-300 group-hover:w-6 group-active:w-7"></span>
-              <span className="w-5 h-[2px] bg-[#f4f4f5] transition-all duration-300 group-hover:w-3 group-active:w-2"></span>
-            </button>
+            {/* Left: Hamburger Menu - Desktop also uses MobileMenu */}
+            <div className="flex items-center gap-6">
+              <MobileMenu />
+            </div>
 
             {/* Center: Logo */}
             <div className="transition-all duration-300 hover:scale-105 active:scale-95">
