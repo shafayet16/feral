@@ -31,19 +31,44 @@ export default function Home() {
         }
       `}} />
 
-      {/* 1. HEADER / NAVBAR */}
-      <header className="sticky top-0 z-50 w-full border-b border-[#52525b]/20 bg-[#0a0a0a]/95 backdrop-blur-md">
-        <div className="grid grid-cols-5 w-full text-center text-[10px] md:text-sm font-bold tracking-widest uppercase items-stretch h-14 md:h-16">
-          <div className="bg-[#f4f4f5] text-[#0a0a0a] flex items-center justify-center font-black tracking-normal uppercase h-full">
-            Feral
+                                          {/* 1. HEADER - VESCARTES INSPIRED MOBILE HEADER WITH LOGO IMAGE */}
+      <header className="sticky top-0 z-50 w-full bg-[#0a0a0a]/95 backdrop-blur-md border-b border-[#52525b]/20">
+        <div className="flex items-center justify-between px-4 py-4">
+          {/* Left: Hamburger Menu (Three Lines) - Fixed width to balance centering */}
+          <div className="w-8">
+            <button className="flex flex-col gap-1.5 w-6 h-6 justify-center items-start group">
+              <span className="w-6 h-[2px] bg-[#f4f4f5] transition-all group-hover:w-4"></span>
+              <span className="w-4 h-[2px] bg-[#f4f4f5] transition-all group-hover:w-6"></span>
+              <span className="w-5 h-[2px] bg-[#f4f4f5] transition-all group-hover:w-3"></span>
+            </button>
           </div>
-          <button className="h-full flex items-center justify-center hover:bg-[#52525b]/10 transition text-[#d4d4d8] hover:text-[#f4f4f5] border-r border-[#52525b]/10">shop</button>
-          <button className="h-full flex items-center justify-center hover:bg-[#52525b]/10 transition text-[#d4d4d8] hover:text-[#f4f4f5] border-r border-[#52525b]/10">cart</button>
-          <button className="h-full flex items-center justify-center hover:bg-[#52525b]/10 transition text-[#d4d4d8] hover:text-[#f4f4f5] border-r border-[#52525b]/10">search</button>
-          <button className="h-full flex items-center justify-center hover:bg-[#52525b]/10 transition text-[#d4d4d8] hover:text-[#f4f4f5]">account</button>
-        </div>
-      </header>
 
+          {/* Center: Logo Image - MUCH LARGER AND PERFECTLY CENTERED */}
+          <div className="absolute left-1/2 transform -translate-x-1/2">
+            <img 
+              src="/ferallogu.png" 
+              alt="FERAL" 
+              className="h-16 md:h-20 w-auto object-contain"
+            />
+          </div>
+
+          {/* Right: Search + Account Icons - Fixed width to balance centering */}
+          <div className="flex items-center gap-4 w-8 justify-end">
+            <button className="text-[#d4d4d8] hover:text-[#f4f4f5] transition">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            <button className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        {/* Mobile Menu Dropdown (Hidden by default - add state to toggle) */}
+      </header>
       {/* 2. HERO */}
       <section className="relative w-full h-[65dvh] border-b border-[#52525b]/20 overflow-hidden">
         <div className="absolute inset-0 z-0">
