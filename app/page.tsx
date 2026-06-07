@@ -88,7 +88,7 @@ export default function Home() {
         }
       `}} />
 
-            {/* 1. HEADER - SLIMMER NAVBAR WITH HAMBURGER */}
+      {/* 1. HEADER - SLIMMER NAVBAR WITH HAMBURGER */}
       <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ease-out ${
         scrolled 
           ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)] navbar-shimmer' 
@@ -119,21 +119,12 @@ export default function Home() {
           
           {/* Desktop Layout - Perfectly Centered Logo with Hamburger */}
           <div className="hidden md:flex items-center justify-between">
-            {/* Left: Hamburger Menu */}
             <div className="flex items-center gap-6">
               <MobileMenu />
             </div>
-
-            {/* Center: Logo - perfectly centered with absolute */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
-              <img 
-                src="/ferallogu.png" 
-                alt="FERAL" 
-                className="h-20 w-auto object-contain"
-              />
+              <img src="/ferallogu.png" alt="FERAL" className="h-20 w-auto object-contain" />
             </div>
-
-            {/* Right: Icons */}
             <div className="flex items-center gap-5">
               <button className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,6 +146,7 @@ export default function Home() {
           </div>
         </div>
       </header>
+      
       {/* Spacer to prevent content from hiding under fixed header */}
       <div className="h-14 md:h-16"></div>
 
@@ -164,8 +156,6 @@ export default function Home() {
           <img src="/bakkarputki.jpg" alt="FERAL Hero" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 active:scale-100" />
           <div className="absolute inset-0 bg-black/40 transition-all duration-500 hover:bg-black/30 active:bg-black/50" />
         </div>
-        
-        {/* Centered Shop Button */}
         <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-10 w-full flex justify-center">
           <button className="fade-in-up bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#d4d4d8] active:text-black active:scale-95 uppercase tracking-[0.25em] text-xs md:text-sm font-bold px-8 py-3 md:px-12 md:py-4 transition-all duration-300 hover:scale-105">
             shop
@@ -173,8 +163,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Rest of your sections remain exactly the same */}
-            {/* 3. SHOP BY CATEGORY - VESCARTES STYLE (Replaces NEW DROPS header + slideshow) */}
+      {/* 3. SHOP BY CATEGORY */}
       <section className="w-full bg-[#0a0a0a] py-16 md:py-20">
         <div className="container mx-auto px-4">
           <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-center text-[#f4f4f5] mb-12 md:mb-16">
@@ -182,156 +171,138 @@ export default function Home() {
           </h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {/* Tops */}
             <Link href="/shop?category=tops" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralshirt1.png" 
-                  alt="Tops" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralshirt1.png" alt="Tops" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
-                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  TOPS
-                </h3>
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">TOPS</h3>
               </div>
             </Link>
 
-            {/* Pants */}
             <Link href="/shop?category=pants" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralpant1.png" 
-                  alt="Pants" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralpant1.png" alt="Pants" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
-                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  PANTS
-                </h3>
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">PANTS</h3>
               </div>
             </Link>
 
-            {/* Jackets */}
             <Link href="/shop?category=jackets" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralshirt1.png" 
-                  alt="Jackets" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralshirt1.png" alt="Jackets" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
-                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  JACKETS
-                </h3>
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">JACKETS</h3>
               </div>
             </Link>
 
-            {/* Denims */}
             <Link href="/shop?category=denims" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralpant1.png" 
-                  alt="Denims" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralpant1.png" alt="Denims" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
-                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  DENIMS
-                </h3>
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">DENIMS</h3>
               </div>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* 5. New Drops HEADER */}
+                  {/* 4. KALAPLANE EDITORIAL PULL QUOTE - WITH VIDEO */}
+      <section className="w-full bg-[#0a0a0a] py-16 md:py-24 border-b border-[#52525b]/20">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            {/* Left Side - Text Content */}
+            <div className="order-2 md:order-1">
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight">
+                Feral
+              </h2>
+              <p className="text-[#a1a1aa] text-sm md:text-base mt-4 leading-relaxed">
+                Where the wild meets the refined. A collection born from chaos, 
+                shaped by intention. Each piece tells a story of rebellion and grace.
+              </p>
+              <Link 
+                href="/shop" 
+                className="inline-block mt-6 text-xs uppercase tracking-wider border-b border-[#52525b] pb-1 hover:border-white transition-colors"
+              >
+                EXPLORE THE COLLECTION
+              </Link>
+            </div>
+            
+            {/* Right Side - Looping Video */}
+            <div className="order-1 md:order-2">
+              <div className="relative aspect-[4/3] overflow-hidden bg-[#18181b]">
+                <video 
+                  src="/feralquote.mp4" 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. NEW DROPS HEADER */}
       <section className="w-full bg-[#0a0a0a] text-center py-10 md:py-14">
-        <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-[#a1a1aa] transition-all duration-300 hover:tracking-[0.4em] hover:text-[#f4f4f5] active:tracking-[0.2em]">
+        <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-[#f4f4f5] transition-all duration-300 hover:tracking-[0.4em] active:tracking-[0.2em]">
           NEW DROPS
         </h2>
       </section>
 
-            {/* 6. NEW DROPS GRID - STATIC (Replaces slideshow) */}
+      {/* 6. NEW DROPS GRID */}
       <section className="w-full bg-[#0a0a0a] pb-12 md:pb-16 border-b border-[#52525b]/20 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {/* Product 1 */}
             <div className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralshirt1.png" 
-                  alt="FERAL Oversized Tee" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralshirt1.png" alt="FERAL Oversized Tee" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
               </div>
               <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  FERAL OVERSIZED TEE
-                </h3>
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL OVERSIZED TEE</h3>
                 <p className="text-xs text-[#a1a1aa] mt-1">৳2,499</p>
               </div>
             </div>
 
-            {/* Product 2 */}
             <div className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralpant1.png" 
-                  alt="FERAL Cargo Pant" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralpant1.png" alt="FERAL Cargo Pant" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
               </div>
               <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  FERAL CARGO PANT
-                </h3>
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL CARGO PANT</h3>
                 <p className="text-xs text-[#a1a1aa] mt-1">৳3,499</p>
               </div>
             </div>
 
-            {/* Product 3 */}
             <div className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralshirt1.png" 
-                  alt="FERAL Hoodie" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralshirt1.png" alt="FERAL Hoodie" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
               </div>
               <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  FERAL HOODIE
-                </h3>
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL HOODIE</h3>
                 <p className="text-xs text-[#a1a1aa] mt-1">৳4,999</p>
               </div>
             </div>
 
-            {/* Product 4 */}
             <div className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img 
-                  src="/feralpant1.png" 
-                  alt="FERAL Straight Pant" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+                <img src="/feralpant1.png" alt="FERAL Straight Pant" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
               </div>
               <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                  FERAL STRAIGHT PANT
-                </h3>
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL STRAIGHT PANT</h3>
                 <p className="text-xs text-[#a1a1aa] mt-1">৳2,999</p>
               </div>
             </div>
@@ -339,7 +310,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. UNTAMED VIDEO SECTION - FULLY RESPONSIVE */}
+      {/* 7. UNTAMED VIDEO SECTION */}
       <section className="relative w-full bg-[#0a0a0a] py-16 md:py-24 border-b border-[#52525b]/20 overflow-hidden group">
         <div className="absolute inset-0 z-0">
           <video src="/fluid.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover video-zoom" />
@@ -352,45 +323,7 @@ export default function Home() {
         </div>
       </section>
 
-            {/* 8. BESTSELLERS SPOTLIGHT */}
-      <section className="w-full bg-[#0a0a0a] py-16 md:py-20 border-b border-[#52525b]/20">
-        <div className="container mx-auto px-4">
-          <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-center text-[#f4f4f5] mb-12 md:mb-16">
-            BESTSELLERS
-          </h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="group cursor-pointer">
-                <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                  <img 
-                    src={item % 2 === 0 ? "/feralshirt1.png" : "/feralpant1.png"} 
-                    alt="Product" 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                </div>
-                <div className="mt-4 text-center">
-                  <h3 className="text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
-                    FERAL OVERSIZED TEE
-                  </h3>
-                  <p className="text-sm text-[#a1a1aa] mt-1">৳2,499</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="text-center mt-12">
-            <Link 
-              href="/shop" 
-              className="inline-block border border-[#52525b]/50 hover:border-white px-8 py-3 text-xs uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black"
-            >
-              VIEW ALL
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 9. SUB-FOOTER INFO RIBBON */}
+      {/* 8. SUB-FOOTER INFO RIBBON */}
       <section className="w-full bg-[#0a0a0a] text-[10px] md:text-xs font-medium tracking-widest text-[#d4d4d8]/80 py-5 border-b border-[#52525b]/10 overflow-hidden">
         <div className="animate-marquee slow cursor-pointer">
           {[...Array(2)].map((_, i) => (
@@ -410,29 +343,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 10. FOOTER */}
+      {/* 9. FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-12 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
         
         <div className="flex gap-6 mb-8">
-          <a 
-            href="https://instagram.com/feral.untamed" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95"
-            aria-label="Instagram"
-          >
+          <a href="https://instagram.com/feral.untamed" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" aria-label="Instagram">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM12 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
             </svg>
           </a>
-          <a 
-            href="https://facebook.com/yourusername" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95"
-            aria-label="Facebook"
-          >
+          <a href="https://facebook.com/yourusername" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" aria-label="Facebook">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
             </svg>
