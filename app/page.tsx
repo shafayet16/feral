@@ -260,22 +260,82 @@ export default function Home() {
         </h2>
       </section>
 
-      {/* 6. New Drops SLIDESHOW */}
-      <section className="w-full bg-[#52525b]/5 pb-12 md:pb-16 border-b border-[#52525b]/20 overflow-hidden">
-        <div className="animate-marquee cursor-pointer">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="flex">
-              {['/feralpant1.png', '/feralshirt1.png', '/feralpant1.png', '/feralshirt1.png'].map((src, idx) => (
-                <div key={idx} className="w-[50vw] md:w-[25vw] aspect-[4/5] border-r border-y border-[#52525b]/30 flex-shrink-0 overflow-hidden group">
-                  <img 
-                    src={src} 
-                    alt="Feral Product" 
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:brightness-110 active:scale-95 active:brightness-90" 
-                  />
-                </div>
-              ))}
+            {/* 6. NEW DROPS GRID - STATIC (Replaces slideshow) */}
+      <section className="w-full bg-[#0a0a0a] pb-12 md:pb-16 border-b border-[#52525b]/20 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {/* Product 1 */}
+            <div className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralshirt1.png" 
+                  alt="FERAL Oversized Tee" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  FERAL OVERSIZED TEE
+                </h3>
+                <p className="text-xs text-[#a1a1aa] mt-1">৳2,499</p>
+              </div>
             </div>
-          ))}
+
+            {/* Product 2 */}
+            <div className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralpant1.png" 
+                  alt="FERAL Cargo Pant" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  FERAL CARGO PANT
+                </h3>
+                <p className="text-xs text-[#a1a1aa] mt-1">৳3,499</p>
+              </div>
+            </div>
+
+            {/* Product 3 */}
+            <div className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralshirt1.png" 
+                  alt="FERAL Hoodie" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  FERAL HOODIE
+                </h3>
+                <p className="text-xs text-[#a1a1aa] mt-1">৳4,999</p>
+              </div>
+            </div>
+
+            {/* Product 4 */}
+            <div className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralpant1.png" 
+                  alt="FERAL Straight Pant" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  FERAL STRAIGHT PANT
+                </h3>
+                <p className="text-xs text-[#a1a1aa] mt-1">৳2,999</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
