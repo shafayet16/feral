@@ -1,9 +1,24 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import MobileMenu from './MobileMenu';
+
 export default function Home() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="min-h-[100dvh] w-full bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased selection:bg-[#d4d4d8] selection:text-[#0a0a0a] overflow-x-hidden">
       
-      {/* INJECTED CSS FOR INFINITE SEAMLESS SCROLLING & VIDEO EFFECT */}
+      {/* INJECTED CSS FOR ANIMATIONS */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes infinite-scroll {
           0% { transform: translateX(0); }
@@ -30,120 +45,222 @@ export default function Home() {
         .video-zoom {
           animation: subtle-zoom 20s ease-in-out infinite alternate;
         }
+
+        @keyframes fadeIn {
+          0% { opacity: 0; transform: scale(1.05); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .hero-fade-in {
+          animation: fadeIn 1.2s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .fade-in-up {
+          animation: fadeInUp 0.8s ease-out 0.3s forwards;
+          opacity: 0;
+        }
+
+        @keyframes shimmer {
+          0% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+          }
+          50% {
+            box-shadow: 0 2px 20px 0 rgba(255, 255, 255, 0.15);
+            border-bottom-color: rgba(255, 255, 255, 0.3);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+          }
+        }
+        .navbar-shimmer {
+          animation: shimmer 3s ease-in-out infinite;
+        }
       `}} />
 
-            {/* 1. HEADER - FULLY RESPONSIVE */}
-      <header className="sticky top-0 z-50 w-full bg-[#0a0a0a]/95 backdrop-blur-md border-b border-[#52525b]/20">
-        <div className="px-4 py-4 md:px-8">
+            {/* 1. HEADER - SLIMMER NAVBAR WITH HAMBURGER */}
+      <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ease-out ${
+        scrolled 
+          ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)] navbar-shimmer' 
+          : 'bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-[#52525b]/20'
+      }`}>
+        <div className="px-4 py-2 md:py-3 md:px-8">
           {/* Mobile Layout */}
           <div className="flex items-center justify-between md:hidden">
             <div className="w-8">
-              {/* REPLACED with MobileMenu component */}
               <MobileMenu />
             </div>
-            <div className="absolute left-1/2 transform -translate-x-1/2 transition-all duration-300 hover:scale-105 active:scale-95">
+            <div>
               <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto object-contain" />
             </div>
-            <div className="flex items-center gap-4 w-8 justify-end">
+            <div className="flex items-center gap-3 w-8 justify-end">
               <button className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </button>
               <button className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </button>
             </div>
           </div>
           
-          {/* Desktop Layout - Logo centered, with hamburger on left */}
+          {/* Desktop Layout - Perfectly Centered Logo with Hamburger */}
           <div className="hidden md:flex items-center justify-between">
-            {/* Left: Hamburger Menu - Desktop also uses MobileMenu */}
+            {/* Left: Hamburger Menu */}
             <div className="flex items-center gap-6">
               <MobileMenu />
             </div>
 
-            {/* Center: Logo */}
-            <div className="transition-all duration-300 hover:scale-105 active:scale-95">
+            {/* Center: Logo - perfectly centered with absolute */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
               <img 
                 src="/ferallogu.png" 
                 alt="FERAL" 
-                className="h-20 md:h-24 w-auto object-contain"
+                className="h-20 w-auto object-contain"
               />
             </div>
 
             {/* Right: Icons */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-5">
               <button className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </button>
               <button className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </button>
               <button className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
                 </svg>
-                <span className="absolute -top-2 -right-2 bg-[#f4f4f5] text-[#0a0a0a] text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">0</span>
+                <span className="absolute -top-2 -right-2 bg-[#f4f4f5] text-[#0a0a0a] text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">0</span>
               </button>
             </div>
           </div>
         </div>
       </header>
+      {/* Spacer to prevent content from hiding under fixed header */}
+      <div className="h-14 md:h-16"></div>
 
-      {/* 2. HERO - FULLY RESPONSIVE */}
+      {/* 2. HERO - FULLY RESPONSIVE WITH FADE-IN ANIMATION */}
       <section className="relative w-full h-[65dvh] md:h-[80dvh] border-b border-[#52525b]/20 overflow-hidden">
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 hero-fade-in">
           <img src="/bakkarputki.jpg" alt="FERAL Hero" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 active:scale-100" />
           <div className="absolute inset-0 bg-black/40 transition-all duration-500 hover:bg-black/30 active:bg-black/50" />
         </div>
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10">
-          <button className="bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#d4d4d8] active:text-black active:scale-95 uppercase tracking-[0.25em] text-xs md:text-sm font-bold px-8 py-3 md:px-12 md:py-4 transition-all duration-300 hover:scale-105">
+        
+        {/* Centered Shop Button */}
+        <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-10 w-full flex justify-center">
+          <button className="fade-in-up bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#d4d4d8] active:text-black active:scale-95 uppercase tracking-[0.25em] text-xs md:text-sm font-bold px-8 py-3 md:px-12 md:py-4 transition-all duration-300 hover:scale-105">
             shop
           </button>
         </div>
       </section>
 
-      {/* 3. NEW DROPS HEADER */}
+      {/* Rest of your sections remain exactly the same */}
+            {/* 3. SHOP BY CATEGORY - VESCARTES STYLE (Replaces NEW DROPS header + slideshow) */}
+      <section className="w-full bg-[#0a0a0a] py-16 md:py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-center text-[#f4f4f5] mb-12 md:mb-16">
+            SHOP BY CATEGORY
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {/* Tops */}
+            <Link href="/shop?category=tops" className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralshirt1.png" 
+                  alt="Tops" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+              </div>
+              <div className="text-center mt-4">
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  TOPS
+                </h3>
+              </div>
+            </Link>
+
+            {/* Pants */}
+            <Link href="/shop?category=pants" className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralpant1.png" 
+                  alt="Pants" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+              </div>
+              <div className="text-center mt-4">
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  PANTS
+                </h3>
+              </div>
+            </Link>
+
+            {/* Jackets */}
+            <Link href="/shop?category=jackets" className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralshirt1.png" 
+                  alt="Jackets" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+              </div>
+              <div className="text-center mt-4">
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  JACKETS
+                </h3>
+              </div>
+            </Link>
+
+            {/* Denims */}
+            <Link href="/shop?category=denims" className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img 
+                  src="/feralpant1.png" 
+                  alt="Denims" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+              </div>
+              <div className="text-center mt-4">
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                  DENIMS
+                </h3>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. New Drops HEADER */}
       <section className="w-full bg-[#0a0a0a] text-center py-10 md:py-14">
-        <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-[#f4f4f5] transition-all duration-300 hover:tracking-[0.4em] active:tracking-[0.2em]">
+        <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-[#a1a1aa] transition-all duration-300 hover:tracking-[0.4em] hover:text-[#f4f4f5] active:tracking-[0.2em]">
           NEW DROPS
         </h2>
       </section>
 
-      {/* 4. NEW DROPS SLIDESHOW - RESPONSIVE MARQUEE */}
-      <section className="w-full bg-[#0a0a0a] pb-12 md:pb-16 border-b border-[#52525b]/20 overflow-hidden">
-        <div className="animate-marquee cursor-pointer">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="flex">
-              {['/feralshirt1.png', '/feralpant1.png', '/feralshirt1.png', '/feralpant1.png'].map((src, idx) => (
-                <div key={idx} className="w-[50vw] md:w-[25vw] aspect-[4/5] border-r border-y border-[#52525b]/30 flex-shrink-0 overflow-hidden group">
-                  <img 
-                    src={src} 
-                    alt="Feral Product" 
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:brightness-110 active:scale-95 active:brightness-90" 
-                  />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 5. COMING SOON HEADER */}
-      <section className="w-full bg-[#0a0a0a] text-center py-10 md:py-14">
-        <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-[#a1a1aa] transition-all duration-300 hover:tracking-[0.4em] hover:text-[#f4f4f5] active:tracking-[0.2em]">
-          COMING SOON
-        </h2>
-      </section>
-
-      {/* 6. COMING SOON SLIDESHOW */}
+      {/* 6. New Drops SLIDESHOW */}
       <section className="w-full bg-[#52525b]/5 pb-12 md:pb-16 border-b border-[#52525b]/20 overflow-hidden">
         <div className="animate-marquee cursor-pointer">
           {[...Array(2)].map((_, i) => (
@@ -175,22 +292,41 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 8. CATEGORY BANNERS - RESPONSIVE GRID */}
-      <section className="w-full grid grid-cols-5 text-center text-[8px] sm:text-[10px] md:text-sm font-black uppercase tracking-wide bg-[#0a0a0a] border-b border-[#52525b]/20 items-stretch min-h-[30vh]">
-        <div className="bg-[#52525b]/10 border-r border-[#52525b]/20 flex items-center justify-center px-2 py-6 md:p-6 h-full transition-all duration-300 hover:bg-[#52525b]/20 active:bg-[#52525b]/30">
-          <span className="text-white text-xl sm:text-2xl md:text-4xl lg:text-5xl font-black tracking-tighter transition-all duration-300 hover:scale-110 hover:tracking-normal active:scale-95">EST</span>
-        </div>
-        <button className="border-r border-[#52525b]/20 flex items-center justify-center px-2 py-6 md:p-6 text-[#d4d4d8] hover:bg-[#52525b]/20 active:bg-[#52525b]/30 transition-all duration-300 w-full h-full text-[10px] sm:text-xs md:text-sm hover:text-[#f4f4f5] active:text-white active:scale-95">
-          BESTSELLERS
-        </button>
-        <button className="border-r border-[#52525b]/20 flex items-center justify-center px-2 py-6 md:p-6 text-[#f4f4f5] hover:bg-[#52525b]/20 active:bg-[#52525b]/30 transition-all duration-300 w-full h-full text-[10px] sm:text-xs md:text-sm active:scale-95">
-          TOPS
-        </button>
-        <button className="border-r border-[#52525b]/20 flex items-center justify-center px-2 py-6 md:p-6 text-[#d4d4d8] hover:bg-[#52525b]/20 active:bg-[#52525b]/30 transition-all duration-300 w-full h-full text-[10px] sm:text-xs md:text-sm hover:text-[#f4f4f5] active:text-white active:scale-95">
-          PANTS
-        </button>
-        <div className="bg-[#52525b]/10 flex items-center justify-center px-2 py-6 md:p-6 h-full transition-all duration-300 hover:bg-[#52525b]/20 active:bg-[#52525b]/30">
-          <span className="text-white text-xl sm:text-2xl md:text-4xl lg:text-5xl font-black tracking-tighter transition-all duration-300 hover:scale-110 hover:tracking-normal active:scale-95">24</span>
+            {/* 8. BESTSELLERS SPOTLIGHT */}
+      <section className="w-full bg-[#0a0a0a] py-16 md:py-20 border-b border-[#52525b]/20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-center text-[#f4f4f5] mb-12 md:mb-16">
+            BESTSELLERS
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="group cursor-pointer">
+                <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                  <img 
+                    src={item % 2 === 0 ? "/feralshirt1.png" : "/feralpant1.png"} 
+                    alt="Product" 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                </div>
+                <div className="mt-4 text-center">
+                  <h3 className="text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
+                    FERAL OVERSIZED TEE
+                  </h3>
+                  <p className="text-sm text-[#a1a1aa] mt-1">৳2,499</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-center mt-12">
+            <Link 
+              href="/shop" 
+              className="inline-block border border-[#52525b]/50 hover:border-white px-8 py-3 text-xs uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black"
+            >
+              VIEW ALL
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -214,11 +350,10 @@ export default function Home() {
         </div>
       </section>
 
-                  {/* 10. FOOTER */}
+      {/* 10. FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-12 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
         
-        {/* Social Icons - Instagram & Facebook */}
         <div className="flex gap-6 mb-8">
           <a 
             href="https://instagram.com/feral.untamed" 
