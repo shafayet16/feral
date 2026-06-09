@@ -70,7 +70,16 @@ export async function POST(request: NextRequest) {
 
 // Helper to handle the checkout database push
 async function processCheckout(supabase: any, body: any, sessionId: string) {
-  const { fullName, email, phone, address, city, items, total, paymentMethod, transactionId } = body;
+  const { fullName, email, phone, address, city, items, total, paymentMethod, transactionId, shippingCost } = body;
+
+  // Build the items array for the order record
+  const itemsForOrder = items.map((i: any) => ({
+    name: i.name,
+    size: i.size,
+    quantity: i.quantity,
+    price: i.price,
+    product_id: i.product_id,
+  }));
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -82,10 +91,12 @@ async function processCheckout(supabase: any, body: any, sessionId: string) {
       customer_address: address,
       city,
       total_amount: total,
+      shipping_cost: shippingCost || 0,   // <-- store shipping cost
       payment_method: paymentMethod,
       payment_status: 'pending',
       transaction_id: transactionId,
-      session_id: sessionId
+      session_id: sessionId,
+      items: itemsForOrder,
     })
     .select('id, order_number')
     .single();
@@ -110,6 +121,8 @@ async function processCheckout(supabase: any, body: any, sessionId: string) {
     orderNumber: order.order_number,
     total,
     email,
+    shippingCost: shippingCost || 0,
     createdAt: new Date().toISOString(),
+    items: itemsForOrder,
   });
 }

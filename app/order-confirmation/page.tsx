@@ -1,3 +1,4 @@
+// app/order-confirmation/page.tsx (full updated file)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,22 +10,22 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<any>(null);
 
   useEffect(() => {
-  const handleScroll = () => setScrolled(window.scrollY > 20);
-  window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
 
-  const lastOrderRaw = localStorage.getItem('lastOrder');
-  if (lastOrderRaw) {
-    try {
-      const parsed = JSON.parse(lastOrderRaw);
-      setOrder(parsed);
-      localStorage.removeItem('lastOrder');
-    } catch (e) {
-      console.error('Could not parse last order', e);
+    const lastOrderRaw = localStorage.getItem('lastOrder');
+    if (lastOrderRaw) {
+      try {
+        const parsed = JSON.parse(lastOrderRaw);
+        setOrder(parsed);
+        localStorage.removeItem('lastOrder');
+      } catch (e) {
+        console.error('Could not parse last order', e);
+      }
     }
-  }
 
-  return () => window.removeEventListener('scroll', handleScroll);
-}, []);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] overflow-x-hidden">
@@ -71,12 +72,27 @@ export default function OrderConfirmationPage() {
           {order && (
             <div className="bg-[#18181b] border border-[#52525b]/20 p-6 mb-8 text-left">
               <p className="text-xs text-[#a1a1aa] mb-2">ORDER NUMBER</p>
-              <p className="text-sm font-mono mb-4">{order.orderId}</p>
+              <p className="text-sm font-mono mb-4">{order.orderNumber}</p>
               <p className="text-xs text-[#a1a1aa] mb-2">ORDER DATE</p>
-              <p className="text-sm mb-4">{new Date(order.orderDate).toLocaleString()}</p>
+              <p className="text-sm mb-4">{order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Just now'}</p>
               <p className="text-xs text-[#a1a1aa] mb-2">TOTAL AMOUNT</p>
-              <p className="text-lg font-bold">৳{order.total.toLocaleString()}</p>
+              <p className="text-lg font-bold">৳{Number(order.total).toLocaleString()}</p>
               <p className="text-xs text-[#a1a1aa] mt-4 pt-4 border-t border-[#52525b]/20">A confirmation email has been sent to {order.email}</p>
+              
+              {/* Items ordered */}
+              {order.items && order.items.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-[#52525b]/20">
+                  <p className="text-xs text-[#a1a1aa] mb-4">ITEMS ORDERED</p>
+                  <div className="space-y-3">
+                    {order.items.map((item: any, idx: number) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span>{item.name} x{item.quantity} ({item.size})</span>
+                        <span>৳{(Number(item.price) * item.quantity).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           

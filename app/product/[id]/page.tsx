@@ -15,8 +15,8 @@ function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <>
-      <motion.button 
-        onClick={() => setIsOpen(true)} 
+      <motion.button
+        onClick={() => setIsOpen(true)}
         className="flex flex-col gap-1.5 w-6 h-6 justify-center items-start group"
         whileTap={{ scale: 0.95 }}
       >
@@ -26,7 +26,7 @@ function MobileMenu() {
       </motion.button>
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
@@ -42,7 +42,12 @@ function MobileMenu() {
             </div>
             <nav className="flex flex-col items-center gap-8 mt-20">
               {['Shop', 'New', 'Archive', 'Account'].map((item) => (
-                <Link key={item} href={`/${item.toLowerCase()}`} onClick={() => setIsOpen(false)} className="text-[#f4f4f5] text-lg font-bold uppercase tracking-wider hover:text-[#a1a1aa] transition">
+                <Link
+                  key={item}
+                  href={`/${item.toLowerCase()}`}
+                  onClick={() => setIsOpen(false)}
+                  className="text-[#f4f4f5] text-lg font-bold uppercase tracking-wider hover:text-[#a1a1aa] transition"
+                >
                   {item}
                 </Link>
               ))}
@@ -70,30 +75,30 @@ type Product = {
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.23, 1, 0.32, 1] } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.23, 1, 0.32, 1] } },
 };
 
 const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-  }
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+  },
 };
 
 const imageReveal = {
   hidden: { opacity: 0, scale: 1.05, filter: 'blur(8px)' },
-  visible: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] } }
+  visible: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] } },
 };
 
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
-  
+
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -122,14 +127,15 @@ export default function ProductPage() {
 
         if (productError || !fetchedProduct) throw productError || new Error('Product not found');
 
+        // Map the database row to our Product type – fixed image handling
         const mappedProduct: Product = {
           id: String(fetchedProduct.id),
           name: fetchedProduct.name,
           price: fetchedProduct.price,
-          description: fetchedProduct.description,
-          details: fetchedProduct.details,
+          description: fetchedProduct.description || '',
+          details: fetchedProduct.details || '',
           sizes: fetchedProduct.sizes || ['S', 'M', 'L', 'XL'],
-          images: Array.isArray(fetchedProduct.images) ? fetchedProduct.images : [fetchedProduct.image || '/feralshirt1.png'],
+          images: [fetchedProduct.image || '/feralshirt1.png'], // always use the single image column
           category: fetchedProduct.category,
           isBestseller: fetchedProduct.is_bestseller ?? false,
           inStock: fetchedProduct.in_stock ?? true,
@@ -138,6 +144,7 @@ export default function ProductPage() {
 
         setProduct(mappedProduct);
 
+        // Fetch related products (same category, excluding current)
         const { data: related, error: relatedError } = await supabase
           .from('products')
           .select('*')
@@ -150,10 +157,10 @@ export default function ProductPage() {
             id: String(item.id),
             name: item.name,
             price: item.price,
-            description: item.description,
-            details: item.details,
+            description: item.description || '',
+            details: item.details || '',
             sizes: item.sizes || ['S', 'M', 'L', 'XL'],
-            images: Array.isArray(item.images) ? item.images : [item.image || '/feralshirt1.png'],
+            images: [item.image || '/feralshirt1.png'],
             category: item.category,
             isBestseller: item.is_bestseller ?? false,
             inStock: item.in_stock ?? true,
@@ -162,7 +169,7 @@ export default function ProductPage() {
           setRelatedProducts(mappedRelated);
         }
       } catch (err) {
-        console.error('Error connecting to Supabase data streams:', err);
+        console.error('Error fetching product:', err);
         setProduct(null);
       } finally {
         setLoading(false);
@@ -202,7 +209,10 @@ export default function ProductPage() {
   };
 
   const handleBuyNow = () => {
-    if (!selectedSize) { alert('Please select a size'); return; }
+    if (!selectedSize) {
+      alert('Please select a size');
+      return;
+    }
     const checkoutItem = {
       id: product.id,
       name: product.name,
@@ -217,22 +227,23 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] overflow-x-hidden">
-      
       {/* HEADER */}
-      <motion.header 
+      <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
         className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ${
-          scrolled 
-            ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10' 
+          scrolled
+            ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10'
             : 'bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-[#52525b]/20'
         }`}
       >
         <div className="px-4 py-2 md:py-3 md:px-8">
           <div className="flex items-center justify-between md:hidden">
             <div className="w-8"><MobileMenu /></div>
-            <motion.div whileHover={{ scale: 1.05 }}><img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto" /></motion.div>
+            <motion.div whileHover={{ scale: 1.05 }}>
+              <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto" />
+            </motion.div>
             <div className="flex items-center gap-3">
               <Link href="/cart">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +254,9 @@ export default function ProductPage() {
           </div>
           <div className="hidden md:flex items-center justify-between">
             <div className="flex items-center gap-6"><MobileMenu /></div>
-            <motion.div whileHover={{ scale: 1.02 }}><img src="/ferallogu.png" alt="FERAL" className="h-20 w-auto" /></motion.div>
+            <motion.div whileHover={{ scale: 1.02 }}>
+              <img src="/ferallogu.png" alt="FERAL" className="h-20 w-auto" />
+            </motion.div>
             <div className="flex items-center gap-5">
               <Link href="/cart">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,16 +273,15 @@ export default function ProductPage() {
       {/* PRODUCT SECTION */}
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-          
-          {/* LEFT: Image Gallery (Strictly borderless/transparent background setup) */}
+          {/* LEFT: Image Gallery */}
           <motion.div initial="hidden" animate="visible" variants={imageReveal}>
             <div className="relative aspect-[3/4] overflow-hidden bg-transparent mb-4 group transition-transform duration-700 hover:scale-95">
-              <motion.img 
+              <motion.img
                 key={selectedImage}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
-                src={product.images[selectedImage]} 
+                src={product.images[selectedImage]}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -284,25 +296,28 @@ export default function ProductPage() {
                 </span>
               )}
             </div>
-            
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.map((img: string, idx: number) => (
-                <motion.button
-                  key={idx}
-                  onClick={() => setSelectedImage(idx)}
-                  whileHover={{ scale: 0.95 }}
-                  whileTap={{ scale: 0.92 }}
-                  className={`aspect-[3/4] overflow-hidden bg-transparent transition-all duration-300 ${
-                    selectedImage === idx ? 'opacity-100' : 'opacity-40 hover:opacity-100'
-                  }`}
-                >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </motion.button>
-              ))}
-            </div>
+
+            {/* Thumbnails (if multiple images, but we only have one for now) */}
+            {product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {product.images.map((img: string, idx: number) => (
+                  <motion.button
+                    key={idx}
+                    onClick={() => setSelectedImage(idx)}
+                    whileHover={{ scale: 0.95 }}
+                    whileTap={{ scale: 0.92 }}
+                    className={`aspect-[3/4] overflow-hidden bg-transparent transition-all duration-300 ${
+                      selectedImage === idx ? 'opacity-100' : 'opacity-40 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </motion.button>
+                ))}
+              </div>
+            )}
           </motion.div>
 
-          {/* RIGHT: Product Details (Borders fully preserved here) */}
+          {/* RIGHT: Product Details */}
           <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
             <motion.div variants={fadeInUp}>
               <div className="flex items-center gap-2 text-xs text-[#a1a1aa] mb-4">
@@ -317,16 +332,25 @@ export default function ProductPage() {
             <motion.h1 variants={fadeInUp} className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-2">
               {product.name}
             </motion.h1>
-            
+
             <motion.p variants={fadeInUp} className="text-xl md:text-2xl text-[#a1a1aa] mb-4">
               ৳{product.price.toLocaleString()}
             </motion.p>
 
             {/* Delivery & Returns */}
             <motion.div variants={fadeInUp} className="space-y-2 text-[#a1a1aa] text-xs mb-6 p-4 bg-[#18181b] border border-[#52525b]/20">
-              <div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m-4-4H4" /></svg><span>Free shipping on orders over ৳5,000</span></div>
-              <div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" /></svg><span>14‑day easy returns</span></div>
-              <div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg><span>Secure payment (bKash / Nagad / card)</span></div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m-4-4H4" /></svg>
+                <span>Free shipping on orders over ৳5,000</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" /></svg>
+                <span>14‑day easy returns</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                <span>Secure payment (bKash / Nagad / card)</span>
+              </div>
             </motion.div>
 
             <motion.p variants={fadeInUp} className="text-sm text-[#d4d4d8] leading-relaxed mb-6 border-l-2 border-[#52525b]/30 pl-4">
@@ -346,9 +370,9 @@ export default function ProductPage() {
             <motion.div variants={fadeInUp} className="mb-6">
               <div className="flex justify-between mb-3">
                 <span className="text-sm font-bold uppercase">Size</span>
-                <motion.button 
+                <motion.button
                   whileHover={{ opacity: 0.7 }}
-                  onClick={() => setShowSizeGuide(true)} 
+                  onClick={() => setShowSizeGuide(true)}
                   className="text-xs text-[#a1a1aa] hover:text-white transition"
                 >
                   Size Guide
@@ -362,7 +386,9 @@ export default function ProductPage() {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedSize(size)}
                     className={`min-w-[60px] py-3 px-4 border text-sm font-medium uppercase transition-all ${
-                      selectedSize === size ? 'bg-white text-black border-white' : 'bg-transparent text-[#d4d4d8] border-[#52525b]/50 hover:border-white'
+                      selectedSize === size
+                        ? 'bg-white text-black border-white'
+                        : 'bg-transparent text-[#d4d4d8] border-[#52525b]/50 hover:border-white'
                     }`}
                   >
                     {size}
@@ -383,7 +409,9 @@ export default function ProductPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToCart}
-                  className={`flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all ${addedToCart ? 'bg-emerald-600 text-white' : 'bg-white text-black hover:bg-[#d4d4d8]'}`}
+                  className={`flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all ${
+                    addedToCart ? 'bg-emerald-600 text-white' : 'bg-white text-black hover:bg-[#d4d4d8]'
+                  }`}
                 >
                   {addedToCart ? 'ADDED ✓' : 'ADD TO CART'}
                 </motion.button>
@@ -419,15 +447,15 @@ export default function ProductPage() {
       </div>
 
       {/* RELATED PRODUCTS */}
-      <motion.section 
+      <motion.section
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
-        viewport={{ once: true, margin: "-100px" }}
+        viewport={{ once: true, margin: '-100px' }}
         className="py-16 md:py-20 border-t border-[#52525b]/20"
       >
         <div className="container mx-auto px-4">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -436,11 +464,11 @@ export default function ProductPage() {
           >
             YOU MAY ALSO LIKE
           </motion.h2>
-          <motion.div 
+          <motion.div
             variants={staggerContainer}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, margin: '-50px' }}
             className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
           >
             {relatedProducts.map((item) => (
@@ -469,14 +497,14 @@ export default function ProductPage() {
       {/* SIZE GUIDE MODAL */}
       <AnimatePresence>
         {showSizeGuide && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
             onClick={() => setShowSizeGuide(false)}
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -515,7 +543,6 @@ export default function ProductPage() {
           <p className="text-[9px] font-mono lowercase tracking-normal">made by shafbitz</p>
         </div>
       </footer>
-
     </div>
   );
 }
