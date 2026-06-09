@@ -1,21 +1,88 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import MobileMenu from '../MobileMenu';
 import { useCartStore } from '@/app/store/cartStore';
 
-// List of Bangladesh divisions
-const DIVISIONS = [
-  'Dhaka',
-  'Chattogram',
-  'Rajshahi',
-  'Khulna',
-  'Barisal',
-  'Sylhet',
-  'Rangpur',
-  'Mymensingh',
+// Comprehensive dataset mapping Bangladeshi cities/districts to their respective divisions
+const BD_CITIES = [
+  // Dhaka Division
+  { name: 'Dhaka City', division: 'Dhaka' },
+  { name: 'Mirpur', division: 'Dhaka' },
+  { name: 'Uttara', division: 'Dhaka' },
+  { name: 'Savar', division: 'Dhaka' },
+  { name: 'Gazipur', division: 'Dhaka' },
+  { name: 'Narayanganj', division: 'Dhaka' },
+  { name: 'Tangail', division: 'Dhaka' },
+  { name: 'Faridpur', division: 'Dhaka' },
+  { name: 'Gopalganj', division: 'Dhaka' },
+  { name: 'Kishoreganj', division: 'Dhaka' },
+  { name: 'Madaripur', division: 'Dhaka' },
+  { name: 'Manikganj', division: 'Dhaka' },
+  { name: 'Munshiganj', division: 'Dhaka' },
+  { name: 'Narsingdi', division: 'Dhaka' },
+  { name: 'Rajbari', division: 'Dhaka' },
+  { name: 'Shariatpur', division: 'Dhaka' },
+  // Chattogram Division
+  { name: 'Chattogram City', division: 'Chattogram' },
+  { name: 'Cox\'s Bazar', division: 'Chattogram' },
+  { name: 'Cumilla', division: 'Chattogram' },
+  { name: 'Feni', division: 'Chattogram' },
+  { name: 'Brahmanbaria', division: 'Chattogram' },
+  { name: 'Noakhali', division: 'Chattogram' },
+  { name: 'Lakshmipur', division: 'Chattogram' },
+  { name: 'Chandpur', division: 'Chattogram' },
+  { name: 'Rangamati', division: 'Chattogram' },
+  { name: 'Khagrachhari', division: 'Chattogram' },
+  { name: 'Bandarban', division: 'Chattogram' },
+  // Rajshahi Division
+  { name: 'Rajshahi City', division: 'Rajshahi' },
+  { name: 'Bogura', division: 'Rajshahi' },
+  { name: 'Pabna', division: 'Rajshahi' },
+  { name: 'Natore', division: 'Rajshahi' },
+  { name: 'Joypurhat', division: 'Rajshahi' },
+  { name: 'Naogaon', division: 'Rajshahi' },
+  { name: 'Nawabganj', division: 'Rajshahi' },
+  { name: 'Sirajganj', division: 'Rajshahi' },
+  // Khulna Division
+  { name: 'Khulna City', division: 'Khulna' },
+  { name: 'Jashore', division: 'Khulna' },
+  { name: 'Satkhira', division: 'Khulna' },
+  { name: 'Bagerhat', division: 'Khulna' },
+  { name: 'Kushtia', division: 'Khulna' },
+  { name: 'Magura', division: 'Khulna' },
+  { name: 'Meherpur', division: 'Khulna' },
+  { name: 'Narail', division: 'Khulna' },
+  { name: 'Chuadanga', division: 'Khulna' },
+  { name: 'Jhenaidah', division: 'Khulna' },
+  // Barisal Division
+  { name: 'Barisal City', division: 'Barisal' },
+  { name: 'Bhola', division: 'Barisal' },
+  { name: 'Jhalokathi', division: 'Barisal' },
+  { name: 'Pirojpur', division: 'Barisal' },
+  { name: 'Barguna', division: 'Barisal' },
+  { name: 'Patuakhali', division: 'Barisal' },
+  // Sylhet Division
+  { name: 'Sylhet City', division: 'Sylhet' },
+  { name: 'Moulvibazar', division: 'Sylhet' },
+  { name: 'Habiganj', division: 'Sylhet' },
+  { name: 'Sunamganj', division: 'Sylhet' },
+  // Rangpur Division
+  { name: 'Rangpur City', division: 'Rangpur' },
+  { name: 'Dinajpur', division: 'Rangpur' },
+  { name: 'Gaibandha', division: 'Rangpur' },
+  { name: 'Kurigram', division: 'Rangpur' },
+  { name: 'Lalmonirhat', division: 'Rangpur' },
+  { name: 'Nilphamari', division: 'Rangpur' },
+  { name: 'Panchagarh', division: 'Rangpur' },
+  { name: 'Thakurgaon', division: 'Rangpur' },
+  // Mymensingh Division
+  { name: 'Mymensingh City', division: 'Mymensingh' },
+  { name: 'Jamalpur', division: 'Mymensingh' },
+  { name: 'Netrokona', division: 'Mymensingh' },
+  { name: 'Sherpur', division: 'Mymensingh' },
 ];
 
 export default function CheckoutPage() {
@@ -27,14 +94,19 @@ export default function CheckoutPage() {
   const [isBuyNow, setIsBuyNow] = useState(false);
   const [hasCheckedData, setHasCheckedData] = useState(false);
 
+  // Autocomplete functional states
+  const [citySuggestions, setCitySuggestions] = useState<{ name: string; division: string }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
-    address: '',
     city: '',
+    division: 'Dhaka',
     postalCode: '',
-    division: 'Dhaka',         // new division field
+    address: '',
     paymentMethod: 'cod',
   });
   const [isProcessing, setIsProcessing] = useState(false);
@@ -51,7 +123,18 @@ export default function CheckoutPage() {
 
     loadData();
 
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Close recommendations panel if user clicks outside container
+    const handleClickOutside = (event: MouseEvent) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -74,7 +157,6 @@ export default function CheckoutPage() {
     }
   }, [cartItems, hasCheckedData]);
 
-  // Subtotal calculation
   const subtotal = checkoutItems.reduce((acc, item) => {
     const rawPrice = item.price ?? item.products?.price ?? 0;
     const cleanPrice = Number(rawPrice);
@@ -82,14 +164,37 @@ export default function CheckoutPage() {
     return acc + (cleanPrice * qty);
   }, 0);
 
-  // Shipping cost: Dhaka division = 80, others = 130
   const shippingCost = formData.division === 'Dhaka' ? 80 : 130;
   const orderTotal = subtotal + shippingCost;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Realtime city filtering triggers
+    if (name === 'city') {
+      if (value.trim().length > 0) {
+        const filtered = BD_CITIES.filter(item =>
+          item.name.toLowerCase().includes(value.toLowerCase())
+        );
+        setCitySuggestions(filtered);
+        setShowSuggestions(true);
+      } else {
+        setCitySuggestions([]);
+        setShowSuggestions(false);
+      }
+    }
+  };
+
+  const handleSelectCity = (cityName: string, divisionName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      city: cityName,
+      division: divisionName // Automatic assignment sets shipping variables perfectly
+    }));
+    setShowSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,7 +225,7 @@ export default function CheckoutPage() {
       phone: formData.phone,
       address: formData.address,
       city: formData.city,
-      division: formData.division,          // send division
+      division: formData.division,
       paymentMethod: formData.paymentMethod,
       shippingCost,
       total: orderTotal,
@@ -254,7 +359,7 @@ export default function CheckoutPage() {
                   <span>৳{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#a1a1aa]">Shipping</span>
+                  <span className="text-[#a1a1aa]">Shipping ({formData.division})</span>
                   <span>৳{shippingCost.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-[#52525b]/20 font-bold">
@@ -314,37 +419,55 @@ export default function CheckoutPage() {
                       className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
                     />
                   </div>
-                  <div>
+
+                  {/* Smart Autocomplete City Field */}
+                  <div className="relative" ref={autocompleteRef}>
                     <label className="block text-xs text-[#a1a1aa] mb-1">
-                      City *
+                      City / District *
                     </label>
                     <input
                       type="text"
                       name="city"
                       required
+                      autoComplete="off"
                       value={formData.city}
                       onChange={handleInputChange}
+                      onFocus={() => formData.city && setShowSuggestions(true)}
                       className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
+                      placeholder="Type your city (e.g. Dhaka, Bogura)"
                     />
+                    
+                    {/* Floating Brutalist Results List */}
+                    {showSuggestions && citySuggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-[#0a0a0a] border border-[#52525b]/50 z-50 rounded shadow-2xl custom-scrollbar">
+                        {citySuggestions.map((cityObj) => (
+                          <div
+                            key={cityObj.name}
+                            onClick={() => handleSelectCity(cityObj.name, cityObj.division)}
+                            className="px-4 py-3 text-sm cursor-pointer border-b border-[#52525b]/10 text-left text-zinc-300 hover:bg-white hover:text-black transition-colors duration-150 font-medium flex justify-between items-center"
+                          >
+                            <span>{cityObj.name}</span>
+                            <span className="text-[10px] uppercase tracking-wider opacity-60 font-mono">
+                              {cityObj.division}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Division Dropdown */}
+                  {/* Read-only Automated Division Tracker */}
                   <div>
                     <label className="block text-xs text-[#a1a1aa] mb-1">
-                      Division *
+                      Division (Auto-filled)
                     </label>
-                    <select
+                    <input
+                      type="text"
                       name="division"
+                      readOnly
                       value={formData.division}
-                      onChange={handleInputChange}
-                      className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white appearance-none"
-                    >
-                      {DIVISIONS.map(div => (
-                        <option key={div} value={div}>
-                          {div}
-                        </option>
-                      ))}
-                    </select>
+                      className="w-full bg-[#18181b] border border-[#52525b]/20 rounded px-4 py-3 text-sm text-zinc-400 select-none cursor-not-allowed outline-none"
+                    />
                   </div>
 
                   <div>
@@ -357,13 +480,13 @@ export default function CheckoutPage() {
                       value={formData.postalCode}
                       onChange={handleInputChange}
                       className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
-                      placeholder="1230"
+                      placeholder="e.g. 1230"
                     />
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="block text-xs text-[#a1a1aa] mb-1">
-                      Address *
+                      Address (Area, House, Road No.) *
                     </label>
                     <input
                       type="text"
@@ -372,49 +495,118 @@ export default function CheckoutPage() {
                       value={formData.address}
                       onChange={handleInputChange}
                       className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
+                      placeholder="e.g. House 42, Road 11"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Payment Method */}
+              {/* Payment Method Selector */}
               <div className="bg-[#18181b] border border-[#52525b]/20 p-6">
                 <h2 className="text-sm font-bold uppercase tracking-wider mb-4">
                   PAYMENT METHOD
                 </h2>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                <div className="grid gap-3">
+                  {/* Cash on Delivery Card */}
+                  <label
+                    className={`flex items-center justify-between p-4 border transition-all duration-300 cursor-pointer rounded select-none ${
+                      formData.paymentMethod === 'cod'
+                        ? 'border-white bg-[#27272a]'
+                        : 'border-[#52525b]/30 bg-[#0a0a0a] hover:border-[#52525b]/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-4 h-4 border flex items-center justify-center transition-all duration-300 ${
+                          formData.paymentMethod === 'cod'
+                            ? 'border-white bg-white'
+                            : 'border-[#52525b]/60 bg-transparent'
+                        }`}
+                      >
+                        {formData.paymentMethod === 'cod' && (
+                          <div className="w-2 h-2 bg-black" />
+                        )}
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        Cash on Delivery
+                      </span>
+                    </div>
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="cod"
                       checked={formData.paymentMethod === 'cod'}
                       onChange={handleInputChange}
-                      className="accent-white"
+                      className="sr-only"
                     />
-                    <span className="text-sm">Cash on Delivery</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
+
+                  {/* bKash Card */}
+                  <label
+                    className={`flex items-center justify-between p-4 border transition-all duration-300 cursor-pointer rounded select-none ${
+                      formData.paymentMethod === 'bkash'
+                        ? 'border-white bg-[#27272a]'
+                        : 'border-[#52525b]/30 bg-[#0a0a0a] hover:border-[#52525b]/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-4 h-4 border flex items-center justify-center transition-all duration-300 ${
+                          formData.paymentMethod === 'bkash'
+                            ? 'border-white bg-white'
+                            : 'border-[#52525b]/60 bg-transparent'
+                        }`}
+                      >
+                        {formData.paymentMethod === 'bkash' && (
+                          <div className="w-2 h-2 bg-black" />
+                        )}
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        bKash
+                      </span>
+                    </div>
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="bkash"
                       checked={formData.paymentMethod === 'bkash'}
                       onChange={handleInputChange}
-                      className="accent-white"
+                      className="sr-only"
                     />
-                    <span className="text-sm">bKash</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
+
+                  {/* Nagad Card */}
+                  <label
+                    className={`flex items-center justify-between p-4 border transition-all duration-300 cursor-pointer rounded select-none ${
+                      formData.paymentMethod === 'nagad'
+                        ? 'border-white bg-[#27272a]'
+                        : 'border-[#52525b]/30 bg-[#0a0a0a] hover:border-[#52525b]/70'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-4 h-4 border flex items-center justify-center transition-all duration-300 ${
+                          formData.paymentMethod === 'nagad'
+                            ? 'border-white bg-white'
+                            : 'border-[#52525b]/60 bg-transparent'
+                        }`}
+                      >
+                        {formData.paymentMethod === 'nagad' && (
+                          <div className="w-2 h-2 bg-black" />
+                        )}
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        Nagad
+                      </span>
+                    </div>
                     <input
                       type="radio"
                       name="paymentMethod"
                       value="nagad"
                       checked={formData.paymentMethod === 'nagad'}
                       onChange={handleInputChange}
-                      className="accent-white"
+                      className="sr-only"
                     />
-                    <span className="text-sm">Nagad</span>
                   </label>
                 </div>
 

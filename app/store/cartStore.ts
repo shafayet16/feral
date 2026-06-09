@@ -29,20 +29,25 @@ export const useCartStore = create<CartStore>((set, get) => ({
   isLoading: false,
 
   fetchCart: async () => {
-    set({ isLoading: true });
-    try {
-      // No more hard‑coded session ID – the cookie will be sent automatically
-      const res = await fetch('/api/cart', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to load cart');
-      const data = await res.json();
-      set({ items: Array.isArray(data) ? data : [] });
-    } catch (error) {
-      console.error('Cart retrieval error:', error);
-      set({ items: [] });
-    } finally {
-      set({ isLoading: false });
+  // 1. Stop execution completely if running on Vercel's build server
+  if (typeof window === 'undefined') return;
+
+  try {
+    const res = await fetch('/api/cart', { credentials: 'include' });
+    
+    // 2. Safely log bad responses instead of throwing a fatal error that kills the build
+    if (!res.ok) {
+      console.warn('Cart endpoint returned non-OK status during build pass.');
+      return;
     }
-  },
+
+    const data = await res.json();
+    set({ items: Array.isArray(data) ? data : [] });
+  } catch (error) {
+    // 3. Catch structural network/parsing errors gracefully
+    console.error('Failed to load cart safely:', error);
+  }
+},
 
   addItem: async (product_id, quantity, size) => {
     try {
