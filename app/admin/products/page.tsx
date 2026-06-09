@@ -33,16 +33,27 @@ export default function AdminProducts() {
 
   useEffect(() => { fetchProducts(); }, []);
 
+  // Securely processes the delete request via your backend API route setup
   const deleteProduct = async (id: string) => {
     if (!confirm('Delete this product permanently? This cannot be undone.')) return;
 
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+      });
 
-    if (error) {
-      // Friendly message for foreign key violation
+      const result = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to delete product');
+      }
+
+      // Success loop confirmation and localized tree state refresh
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Delete request error execution:', error);
+      
+      // Friendly message loop capturing raw Postgres foreign key blocks
       if (error.message.includes('violates foreign key constraint')) {
         alert(
           'This product can’t be deleted because it’s already been ordered by customers.\n\n' +
@@ -52,8 +63,6 @@ export default function AdminProducts() {
       } else {
         alert('Delete failed: ' + error.message);
       }
-    } else {
-      fetchProducts(); // refresh the list
     }
   };
 

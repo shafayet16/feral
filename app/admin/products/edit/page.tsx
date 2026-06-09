@@ -110,7 +110,7 @@ export default function EditProduct() {
     setSaving(true);
 
     // If a new file is selected, upload it first
-    let finalImageUrl = form.image; // keep existing URL if no new file
+    let finalImageUrl = form.image; 
     if (selectedFile) {
       const uploadedUrl = await uploadImage();
       if (uploadedUrl) finalImageUrl = uploadedUrl;
@@ -121,7 +121,6 @@ export default function EditProduct() {
     }
 
     const payload = {
-      id: productId,
       name: form.name,
       price: Number(form.price),
       category: form.category,
@@ -133,8 +132,9 @@ export default function EditProduct() {
       in_stock: form.in_stock,
     };
 
-    const res = await fetch('/api/products', {
-      method: 'PUT',
+    // Corrected target endpoint and aligned method type
+    const res = await fetch(`/api/products/${productId}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -191,7 +191,6 @@ export default function EditProduct() {
           </select>
         </div>
 
-        {/* IMAGE UPLOAD SECTION */}
         <div>
           <label className="text-xs text-neutral-400">Product Image</label>
           <div className="mt-1 flex items-center gap-4">
@@ -203,7 +202,6 @@ export default function EditProduct() {
             />
             {uploading && <span className="text-xs text-neutral-400 animate-pulse">Uploading...</span>}
           </div>
-          {/* Show preview of newly selected file, or existing image */}
           {previewUrl ? (
             <div className="mt-2 w-32 h-32 overflow-hidden border border-neutral-700">
               <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
