@@ -1,10 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase-admin'; // 👈 Swapped to admin client
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient();
     const cookieStore = req.cookies;
     let sessionId = cookieStore.get('cart_session')?.value;
 
@@ -12,7 +11,8 @@ export async function GET(req: NextRequest) {
       sessionId = uuidv4();
     }
 
-    const { data, error } = await supabase
+    // Pulls cart along with relational product data via master client
+    const { data, error } = await supabaseAdmin
       .from('cart_items')
       .select('*, products(*)')
       .eq('session_id', sessionId)
@@ -39,7 +39,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient();
     const body = await req.json();
 
     if (!body.product_id) {
@@ -52,7 +51,8 @@ export async function POST(req: NextRequest) {
       sessionId = uuidv4();
     }
 
-    const { data, error } = await supabase
+    // Master execution block to add items to cart backend-side
+    const { data, error } = await supabaseAdmin
       .from('cart_items')
       .insert([{ product_id: Number(body.product_id), quantity: body.quantity || 1, size: body.size || 'M', session_id: sessionId }])
       .select();

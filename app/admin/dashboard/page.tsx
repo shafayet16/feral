@@ -1,11 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
-const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '@/lib/supabase-client'; // 👈 Shared client instance
 
 type Order = {
   id: string;
@@ -57,7 +53,7 @@ export default function AdminDashboard() {
     if (error) {
       alert('Update failed: ' + error.message);
     } else {
-      fetchOrders(); // refresh table
+      fetchOrders();
     }
   };
 

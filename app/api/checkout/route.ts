@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase-admin'; // 👈 Swapped to admin client
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,11 +7,11 @@ import { v4 as uuidv4 } from 'uuid';
 export async function GET() {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get('cart_session')?.value;
-  const supabase = await createClient();
 
   if (!sessionId) return NextResponse.json({ items: [] });
 
-  const { data: cartItems, error } = await supabase
+  // Uses admin master key to read cart items bypassing RLS
+  const { data: cartItems, error } = await supabaseAdmin
     .from('cart_items')
     .select(`id, quantity, size, products (id, name, price, images)`)
     .eq('session_id', sessionId);
@@ -35,7 +35,6 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
   let sessionId = cookieStore.get('cart_session')?.value;
-  const supabase = await createClient();
 
   if (!sessionId) {
     sessionId = uuidv4();
@@ -46,12 +45,12 @@ export async function POST(request: NextRequest) {
   
   // Logic Branch: If the body has a checkout flag, process order
   if (body.action === 'checkout') {
-    return await processCheckout(supabase, body, sessionId);
+    return await processCheckout(body, sessionId);
   }
 
   // Otherwise, default to adding to cart
   const { product_id, quantity, size } = body;
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseAdmin
     .from('cart_items')
     .select('id, quantity')
     .eq('session_id', sessionId)
@@ -60,19 +59,18 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (existing) {
-    await supabase.from('cart_items').update({ quantity: existing.quantity + quantity }).eq('id', existing.id);
+    await supabaseAdmin.from('cart_items').update({ quantity: existing.quantity + quantity }).eq('id', existing.id);
   } else {
-    await supabase.from('cart_items').insert({ session_id: sessionId, product_id, quantity, size });
+    await supabaseAdmin.from('cart_items').insert({ session_id: sessionId, product_id, quantity, size });
   }
 
   return NextResponse.json({ success: true });
 }
 
 // Helper to handle the checkout database push
-async function processCheckout(supabase: any, body: any, sessionId: string) {
+async function processCheckout(body: any, sessionId: string) {
   const { fullName, email, phone, address, city, items, total, paymentMethod, transactionId, shippingCost } = body;
 
-  // Build the items array for the order record
   const itemsForOrder = items.map((i: any) => ({
     name: i.name,
     size: i.size,
@@ -81,7 +79,8 @@ async function processCheckout(supabase: any, body: any, sessionId: string) {
     product_id: i.product_id,
   }));
 
-  const { data: order, error: orderError } = await supabase
+  // Safely inserts order even when RLS is completely locked down to the public
+  const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
     .insert({
       order_number: `FERAL-${Date.now().toString().slice(-6)}`,
@@ -91,7 +90,7 @@ async function processCheckout(supabase: any, body: any, sessionId: string) {
       customer_address: address,
       city,
       total_amount: total,
-      shipping_cost: shippingCost || 0,   // <-- store shipping cost
+      shipping_cost: shippingCost || 0,
       payment_method: paymentMethod,
       payment_status: 'pending',
       transaction_id: transactionId,
@@ -103,7 +102,7 @@ async function processCheckout(supabase: any, body: any, sessionId: string) {
 
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
 
-  await supabase.from('order_items').insert(
+  await supabaseAdmin.from('order_items').insert(
     items.map((i: any) => ({
       order_id: order.id,
       product_id: i.product_id,
@@ -114,7 +113,8 @@ async function processCheckout(supabase: any, body: any, sessionId: string) {
     }))
   );
 
-  await supabase.from('cart_items').delete().eq('session_id', sessionId);
+  // Safely wipes the cart data on the server
+  await supabaseAdmin.from('cart_items').delete().eq('session_id', sessionId);
 
   return NextResponse.json({
     success: true,

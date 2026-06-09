@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  'https://thkbnqmnatphefnnllme.supabase.co',
-  'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC'
-);
+import { supabase } from '@/lib/supabase-client'; // 👈 Shared client instance
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
