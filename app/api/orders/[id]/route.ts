@@ -1,14 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-// PATCH: update payment_status and/or order_status
+// PATCH: update payment_status or order_status
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }  // Note: params is a Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = createClient();
-
-  // 1. Await the params because Next.js 15+ wraps them in a Promise
   const resolvedParams = await params;
   const orderId = resolvedParams.id;
 

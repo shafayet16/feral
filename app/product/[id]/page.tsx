@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import { useCartStore } from '@/app/store/cartStore';
 
@@ -30,7 +30,7 @@ function MobileMenu() {
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
             className="fixed inset-0 z-50 bg-[#0a0a0a]"
           >
             <div className="flex justify-end p-6">
@@ -73,22 +73,27 @@ type Product = {
   stockCount: number;
 };
 
-const fadeInUp = {
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.23, 1, 0.32, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.23, 1, 0.32, 1] } }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-  },
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
 };
 
-const imageReveal = {
+const imageReveal: Variants = {
   hidden: { opacity: 0, scale: 1.05, filter: 'blur(8px)' },
-  visible: { opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] } },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: { duration: 0.8, ease: [0.23, 1, 0.32, 1] }
+  }
 };
 
 export default function ProductPage() {
@@ -127,16 +132,15 @@ export default function ProductPage() {
 
         if (productError || !fetchedProduct) throw productError || new Error('Product not found');
 
-        // Map the database row to our Product type – fixed image handling
         const mappedProduct: Product = {
           id: String(fetchedProduct.id),
-          name: fetchedProduct.name,
-          price: fetchedProduct.price,
+          name: fetchedProduct.name || '',
+          price: fetchedProduct.price || 0,
           description: fetchedProduct.description || '',
           details: fetchedProduct.details || '',
-          sizes: fetchedProduct.sizes || ['S', 'M', 'L', 'XL'],
-          images: [fetchedProduct.image || '/feralshirt1.png'], // always use the single image column
-          category: fetchedProduct.category,
+          sizes: Array.isArray(fetchedProduct.sizes) ? fetchedProduct.sizes : ['S', 'M', 'L', 'XL'],
+          images: [fetchedProduct.image || '/feralshirt1.png'],
+          category: fetchedProduct.category || '',
           isBestseller: fetchedProduct.is_bestseller ?? false,
           inStock: fetchedProduct.in_stock ?? true,
           stockCount: fetchedProduct.stock_count ?? 0,
@@ -144,7 +148,6 @@ export default function ProductPage() {
 
         setProduct(mappedProduct);
 
-        // Fetch related products (same category, excluding current)
         const { data: related, error: relatedError } = await supabase
           .from('products')
           .select('*')
@@ -168,8 +171,9 @@ export default function ProductPage() {
           }));
           setRelatedProducts(mappedRelated);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching product:', err);
+        alert('Product fetch error: ' + (err.message || err));
         setProduct(null);
       } finally {
         setLoading(false);
@@ -297,7 +301,6 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* Thumbnails (if multiple images, but we only have one for now) */}
             {product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {product.images.map((img: string, idx: number) => (
@@ -508,7 +511,7 @@ export default function ProductPage() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
               className="bg-[#0a0a0a] border border-white/20 p-6 max-w-sm w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >

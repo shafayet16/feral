@@ -1,15 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-// 1. DELETE: Remove a specific item by its ID
+// DELETE: Remove a specific cart item by its ID
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createClient();
-    
-    // CRITICAL FIX: Await params context for Next.js dynamic routing environments
     const resolvedParams = await params;
     const itemId = resolvedParams.id;
 
@@ -31,18 +29,16 @@ export async function DELETE(
   }
 }
 
-// 2. PATCH: Update quantity for a specific item by its ID
+// PATCH: Update quantity for a specific cart item by its ID
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createClient();
-    
-    // CRITICAL FIX: Await params context here as well
     const resolvedParams = await params;
     const itemId = resolvedParams.id;
-    
+
     const { quantity } = await req.json();
 
     if (!itemId || itemId === 'undefined') {
