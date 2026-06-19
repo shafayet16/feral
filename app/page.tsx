@@ -2,10 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
 import MobileMenu from './MobileMenu';
+
+// Direct Supabase client configuration
+const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
+const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+type Product = {
+  id: string;
+  name: string;
+  price: number | null;
+  category: string;
+  image: string;
+  is_bestseller: boolean;
+  in_stock: boolean;
+};
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
+  const [newDrops, setNewDrops] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,6 +31,27 @@ export default function Home() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Fetch the 4 newest products from Supabase
+  useEffect(() => {
+    const fetchNewDrops = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: false }) // Newest item entries first
+        .limit(4);
+
+      if (!error && data) {
+        setNewDrops(data);
+      } else {
+        console.error('Error fetching new drops:', error);
+      }
+      setLoading(false);
+    };
+
+    fetchNewDrops();
   }, []);
 
   return (
@@ -88,7 +127,7 @@ export default function Home() {
         }
       `}} />
 
-      {/* 1. HEADER - SLIMMER NAVBAR WITH HAMBURGER */}
+      {/* 1. HEADER */}
       <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ease-out ${
         scrolled 
           ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)] navbar-shimmer' 
@@ -117,7 +156,7 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Desktop Layout - Perfectly Centered Logo with Hamburger */}
+          {/* Desktop Layout */}
           <div className="hidden md:flex items-center justify-between">
             <div className="flex items-center gap-6">
               <MobileMenu />
@@ -147,21 +186,19 @@ export default function Home() {
         </div>
       </header>
       
-      {/* Spacer to prevent content from hiding under fixed header */}
       <div className="h-14 md:h-16"></div>
 
-      {/* 2. HERO - FULLY RESPONSIVE WITH FADE-IN ANIMATION */}
+      {/* 2. HERO */}
       <section className="relative w-full h-[65dvh] md:h-[80dvh] border-b border-[#52525b]/20 overflow-hidden">
         <div className="absolute inset-0 z-0 hero-fade-in">
           <img src="/bakkarputki.jpg" alt="FERAL Hero" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 active:scale-100" />
           <div className="absolute inset-0 bg-black/40 transition-all duration-500 hover:bg-black/30 active:bg-black/50" />
         </div>
-        {/* Change this part */}
-<div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-10 w-full flex justify-center">
-  <Link href="/shop" className="fade-in-up bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#d4d4d8] active:text-black active:scale-95 uppercase tracking-[0.25em] text-xs md:text-sm font-bold px-8 py-3 md:px-12 md:py-4 transition-all duration-300 hover:scale-105 block">
-    shop
-  </Link>
-</div>
+        <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-10 w-full flex justify-center">
+          <Link href="/shop" className="fade-in-up bg-transparent text-white border border-white hover:bg-white hover:text-black active:bg-[#d4d4d8] active:text-black active:scale-95 uppercase tracking-[0.25em] text-xs md:text-sm font-bold px-8 py-3 md:px-12 md:py-4 transition-all duration-300 hover:scale-105 block">
+            shop
+          </Link>
+        </div>
       </section>
 
       {/* 3. SHOP BY CATEGORY */}
@@ -215,38 +252,22 @@ export default function Home() {
         </div>
       </section>
 
-                  {/* 4. KALAPLANE EDITORIAL PULL QUOTE - WITH VIDEO */}
+      {/* 4. KALAPLANE EDITORIAL PULL QUOTE */}
       <section className="w-full bg-[#0a0a0a] py-16 md:py-24 border-b border-[#52525b]/20">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-            {/* Left Side - Text Content */}
             <div className="order-2 md:order-1">
-              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight">
-                Feral
-              </h2>
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight">Feral</h2>
               <p className="text-[#a1a1aa] text-sm md:text-base mt-4 leading-relaxed">
-                Where the wild meets the refined. A collection born from chaos, 
-                shaped by intention. Each piece tells a story of rebellion and grace.
+                Where the wild meets the refined. A collection born from chaos, shaped by intention. Each piece tells a story of rebellion and grace.
               </p>
-              <Link 
-                href="/shop" 
-                className="inline-block mt-6 text-xs uppercase tracking-wider border-b border-[#52525b] pb-1 hover:border-white transition-colors"
-              >
+              <Link href="/shop" className="inline-block mt-6 text-xs uppercase tracking-wider border-b border-[#52525b] pb-1 hover:border-white transition-colors">
                 EXPLORE THE COLLECTION
               </Link>
             </div>
-            
-            {/* Right Side - Looping Video */}
             <div className="order-1 md:order-2">
               <div className="relative aspect-[4/3] overflow-hidden bg-[#18181b]">
-                <video 
-                  src="/feralquote.mp4" 
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
+                <video src="/feralquote.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover" />
               </div>
             </div>
           </div>
@@ -260,54 +281,41 @@ export default function Home() {
         </h2>
       </section>
 
-      {/* 6. NEW DROPS GRID */}
+      {/* 6. DYNAMIC NEW DROPS GRID */}
       <section className="w-full bg-[#0a0a0a] pb-12 md:pb-16 border-b border-[#52525b]/20 overflow-hidden">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            <div className="group cursor-pointer">
-              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img src="/feralshirt1.png" alt="FERAL Oversized Tee" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL OVERSIZED TEE</h3>
-                <p className="text-xs text-[#a1a1aa] mt-1">৳2,499</p>
-              </div>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
             </div>
-
-            <div className="group cursor-pointer">
-              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img src="/feralpant1.png" alt="FERAL Cargo Pant" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL CARGO PANT</h3>
-                <p className="text-xs text-[#a1a1aa] mt-1">৳3,499</p>
-              </div>
+          ) : newDrops.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-xs text-[#a1a1aa] uppercase font-mono tracking-widest">No recent drops discovered.</p>
             </div>
-
-            <div className="group cursor-pointer">
-              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img src="/feralshirt1.png" alt="FERAL Hoodie" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL HOODIE</h3>
-                <p className="text-xs text-[#a1a1aa] mt-1">৳4,999</p>
-              </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {newDrops.map((product) => (
+                <Link key={product.id} href={`/product/${product.id}`} className="group cursor-pointer block">
+                  <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                    <img 
+                      src={product.image || '/feralshirt1.png'} 
+                      alt={product.name} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+                  </div>
+                  <div className="mt-4 text-center">
+                    <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors truncate px-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-[#a1a1aa] mt-1">
+                      ৳{product.price !== null && product.price !== undefined ? product.price.toLocaleString() : '0'}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
-
-            <div className="group cursor-pointer">
-              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img src="/feralpant1.png" alt="FERAL Straight Pant" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">FERAL STRAIGHT PANT</h3>
-                <p className="text-xs text-[#a1a1aa] mt-1">৳2,999</p>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -347,7 +355,6 @@ export default function Home() {
       {/* 9. FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-12 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
-        
         <div className="flex gap-6 mb-8">
           <a href="https://instagram.com/feral.untamed" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" aria-label="Instagram">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

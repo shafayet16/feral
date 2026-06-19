@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import MobileMenu from '../MobileMenu';
 
@@ -20,7 +21,7 @@ type Product = {
   in_stock: boolean;
 };
 
-export default function ShopPage() {
+function ShopContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
@@ -30,6 +31,19 @@ export default function ShopPage() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const PAGE_SIZE = 8;
+
+  // READ URL SEARCH PARAMETERS
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get('category');
+
+  // Listen for category parameters in the URL route
+  useEffect(() => {
+    if (categoryParam) {
+      setActiveCategory(categoryParam.toLowerCase());
+    } else {
+      setActiveCategory('all');
+    }
+  }, [categoryParam]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -53,9 +67,7 @@ export default function ShopPage() {
       console.error('Error fetching products:', error);
       setHasMore(false);
     } else {
-      // If fewer than PAGE_SIZE, no more products
       if (data.length < PAGE_SIZE) setHasMore(false);
-      // For page 0, replace; otherwise append
       setProducts(prev => (pageNum === 0 ? data : [...prev, ...data]));
     }
     setLoading(false);
@@ -69,7 +81,6 @@ export default function ShopPage() {
   useEffect(() => {
     setPage(0);
     setHasMore(true);
-    // fetchProducts(0) will be triggered because page changed to 0
   }, [activeCategory]);
 
   const categories = [
@@ -85,7 +96,7 @@ export default function ShopPage() {
   const filteredProducts = products.filter(product => {
     if (activeCategory === 'all') return true;
     if (activeCategory === 'bestsellers') return product.is_bestseller === true;
-    return product.category === activeCategory;
+    return product.category?.toLowerCase() === activeCategory;
   });
 
   return (
@@ -272,5 +283,18 @@ export default function ShopPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// MAIN EXPORT WRAPPED IN SUSPENSE FOR NEXT.JS COMPILATION SECURITY
+export default function ShopPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] flex justify-center items-center font-mono text-xs tracking-widest">
+        LOADING COLLECTION VALUATION...
+      </div>
+    }>
+      <ShopContent />
+    </Suspense>
   );
 }
