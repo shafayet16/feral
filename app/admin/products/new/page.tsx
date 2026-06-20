@@ -8,175 +8,244 @@ const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
 const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default function NewProduct() {
+export default function AddProduct() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    name: '',
-    price: '',
-    category: 'tops',
-    image: '',
-    description: '',
-    details: '',
-    sizes: 'S,M,L,XL',
-    is_bestseller: false,
-    in_stock: true,
-  });
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
+  // Core Fields Data Form State Mapping
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('tops');
+  const [description, setDescription] = useState('');
+  const [details, setDetails] = useState('');
+  const [inStock, setInStock] = useState(true);
+  const [isBestseller, setIsBestseller] = useState(false);
+  
+  // Clean initialization slots targeting 5 items array
+  const [images, setImages] = useState<string[]>(['', '', '', '', '']);
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!selectedFile) return null;
-    setUploading(true);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setUploadingIndex(index);
+
     try {
-      const fileName = `${Date.now()}_${selectedFile.name.replace(/\s+/g, '_')}`;
-      const { error } = await supabase.storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random()}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
         .from('product-images')
-        .upload(fileName, selectedFile, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+        .upload(filePath, file);
 
-      if (error) {
-        alert('Upload failed: ' + error.message);
-        return null;
-      }
+      if (uploadError) throw uploadError;
 
-      const { data: publicUrl } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from('product-images')
-        .getPublicUrl(fileName);
+        .getPublicUrl(filePath);
 
-      return publicUrl.publicUrl;
+      const updated = [...images];
+      updated[index] = publicUrl;
+      setImages(updated);
     } catch (err: any) {
-      alert('Upload error: ' + err.message);
-      return null;
+      console.error('Upload failed:', err);
+      alert('Upload failed: ' + err.message);
     } finally {
-      setUploading(false);
+      setUploadingIndex(null);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    setLoading(true);
+    setError(null);
 
-    let finalImageUrl = form.image;
-    if (selectedFile) {
-      const uploadedUrl = await uploadImage();
-      if (uploadedUrl) finalImageUrl = uploadedUrl;
-      else {
-        setSaving(false);
-        return;
-      }
-    }
+    const finalImagesArray = images.filter((url) => url.trim() !== '');
 
-    if (!finalImageUrl) {
-      alert('Please provide an image');
-      setSaving(false);
+    if (!name || !price) {
+      setError('Core identifier parameters Name and Price must be assigned values.');
+      setLoading(false);
       return;
     }
 
-    // --- Direct Supabase insert (no API route) ---
-    const { error } = await supabase.from('products').insert({
-      name: form.name,
-      price: Number(form.price),
-      category: form.category,
-      image: finalImageUrl,
-      description: form.description,
-      details: form.details,
-      sizes: form.sizes.split(',').map(s => s.trim()).filter(s => s),
-      is_bestseller: form.is_bestseller,
-      in_stock: form.in_stock,
-    });
+    try {
+      const { error: insertError } = await supabase
+        .from('products')
+        .insert([
+          {
+            name,
+            price: parseFloat(price) || 0,
+            category,
+            description,
+            details,
+            in_stock: inStock,
+            is_bestseller: isBestseller,
+            images: finalImagesArray,
+            image: finalImagesArray[0] || '/feralshirt1.png',
+            sizes: ['S', 'M', 'L', 'XL']
+          }
+        ]);
 
-    if (error) {
-      // Show the real database error
-      alert('Failed to save product: ' + error.message);
-      setSaving(false);
-      return;
+      if (insertError) throw insertError;
+
+      router.push('/admin/products');
+      router.refresh();
+    } catch (err: any) {
+      console.error('Error adding record item metadata profile:', err);
+      setError(err.message || 'Failed creating new catalog resource profile target.');
+    } finally {
+      setLoading(false);
     }
-
-    router.push('/admin/products');
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8 font-mono">
-      <h1 className="text-2xl font-bold uppercase mb-6">Add New Product</h1>
-      <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
-        {/* Name */}
-        <div>
-          <label className="text-xs text-neutral-400">Name</label>
-          <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" />
+    <div className="min-h-screen bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased pt-24 pb-16 px-4">
+      <div className="max-w-2xl mx-auto bg-[#0a0a0a] border border-[#27272a] p-6 md:p-8">
+        
+        <div className="flex items-center justify-between mb-8 border-b border-[#27272a] pb-4">
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-wider">ADD NEW PRODUCT</h1>
+          <button 
+            type="button" 
+            onClick={() => router.back()} 
+            className="text-xs uppercase tracking-widest text-[#a1a1aa] hover:text-white transition-colors font-mono"
+          >
+            [ CANCEL ]
+          </button>
         </div>
-        {/* Price */}
-        <div>
-          <label className="text-xs text-neutral-400">Price (BDT)</label>
-          <input type="number" required value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" />
-        </div>
-        {/* Category */}
-        <div>
-          <label className="text-xs text-neutral-400">Category</label>
-          <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white">
-            <option value="tops">Tops</option>
-            <option value="pants">Pants</option>
-            <option value="jackets">Jackets</option>
-            <option value="denims">Denims</option>
-          </select>
-        </div>
-        {/* Image upload */}
-        <div>
-          <label className="text-xs text-neutral-400">Product Image</label>
-          <div className="mt-1 flex items-center gap-4">
-            <input type="file" accept="image/*" onChange={handleFileChange} className="text-sm text-neutral-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-white file:text-black hover:file:bg-neutral-200" />
-            {uploading && <span className="text-xs text-neutral-400 animate-pulse">Uploading...</span>}
+
+        {error && (
+          <div className="bg-red-900/20 border border-red-500 text-red-200 text-xs uppercase tracking-wider px-4 py-3 mb-6 font-mono">
+            Error: {error}
           </div>
-          {previewUrl && (
-            <div className="mt-2 w-32 h-32 overflow-hidden border border-neutral-700">
-              <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Product Name</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g., Brazil Embroidered Jersey"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Price (BDT)</label>
+              <input
+                type="number"
+                required
+                placeholder="1599"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors font-mono"
+              />
             </div>
-          )}
-          <p className="text-xs text-neutral-500 mt-1">or paste an image URL:</p>
-          <input type="text" value={form.image} onChange={e => setForm({...form, image: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" placeholder="https://..." />
-        </div>
-        {/* Description */}
-        <div>
-          <label className="text-xs text-neutral-400">Description</label>
-          <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" rows={3} />
-        </div>
-        {/* Details */}
-        <div>
-          <label className="text-xs text-neutral-400">Details (care, fabric, etc.)</label>
-          <textarea value={form.details} onChange={e => setForm({...form, details: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" rows={3} />
-        </div>
-        {/* Sizes */}
-        <div>
-          <label className="text-xs text-neutral-400">Sizes (comma‑separated)</label>
-          <input type="text" value={form.sizes} onChange={e => setForm({...form, sizes: e.target.value})} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" />
-        </div>
-        {/* Toggles */}
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={form.is_bestseller} onChange={e => setForm({...form, is_bestseller: e.target.checked})} />
-            Bestseller
-          </label>
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={form.in_stock} onChange={e => setForm({...form, in_stock: e.target.checked})} />
-            In Stock
-          </label>
-        </div>
-        {/* Submit */}
-        <button type="submit" disabled={saving || uploading} className="bg-white text-black px-6 py-2 uppercase font-bold hover:bg-neutral-200 disabled:opacity-50">
-          {saving ? 'Saving...' : uploading ? 'Uploading Image...' : 'Create Product'}
-        </button>
-      </form>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors appearance-none cursor-pointer"
+              >
+                <option value="tops">Tops</option>
+                <option value="pants">Pants</option>
+                <option value="jackets">Jackets</option>
+                <option value="denims">Denims</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold block">
+              Product Gallery Images (Up to 5 slots)
+            </label>
+            
+            <div className="grid grid-cols-1 gap-3">
+              {images.map((url, index) => (
+                <div key={index} className="flex flex-col gap-2 p-3 bg-[#111] border border-white/5">
+                  <span className="text-[10px] text-[#71717a] font-mono uppercase flex justify-between">
+                    <span>Image URL Slot {index + 1}</span>
+                    {uploadingIndex === index && <span className="text-white animate-pulse">UPLOADING...</span>}
+                  </span>
+                  <div className="flex gap-2 items-center">
+                    <label className="bg-[#0a0a0a] border border-[#27272a] px-3 py-2 text-[10px] uppercase cursor-pointer hover:border-white transition-colors text-[#71717a] hover:text-white font-mono shrink-0">
+                      BROWSE
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, index)} />
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Paste URL or browse..."
+                      value={url}
+                      onChange={(e) => {
+                        const updated = [...images];
+                        updated[index] = e.target.value;
+                        setImages(updated);
+                      }}
+                      className="flex-1 bg-[#0a0a0a] border border-[#27272a] px-3 py-2 text-xs text-[#f4f4f5] focus:outline-none focus:border-white transition-colors font-mono"
+                    />
+                    {url.trim() !== '' && (
+                      <img 
+                        src={url} 
+                        alt="Preview" 
+                        className="w-9 h-9 object-cover bg-[#0a0a0a] border border-white/10 shrink-0"
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Description</label>
+            <textarea
+              rows={3}
+              placeholder="Enter description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-none"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Details</label>
+            <textarea
+              rows={2}
+              placeholder="e.g., Fabric specs..."
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-none font-mono text-xs"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 bg-[#111] p-4 border border-[#27272a]">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} className="w-4 h-4 accent-white" />
+              <span className="text-xs uppercase text-[#a1a1aa]">In Stock</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={isBestseller} onChange={(e) => setIsBestseller(e.target.checked)} className="w-4 h-4 accent-white" />
+              <span className="text-xs uppercase text-[#a1a1aa]">Bestseller</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-white text-black hover:bg-[#d4d4d8] disabled:bg-[#27272a] font-bold uppercase tracking-[0.2em] text-xs py-4 transition-all"
+          >
+            {loading ? 'PUBLISHING...' : 'PUBLISH PRODUCT TO STORE'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

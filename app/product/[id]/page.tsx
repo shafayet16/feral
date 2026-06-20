@@ -119,7 +119,6 @@ export default function ProductPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
   useEffect(() => {
     async function fetchProductData() {
       try {
@@ -132,6 +131,10 @@ export default function ProductPage() {
 
         if (productError || !fetchedProduct) throw productError || new Error('Product not found');
 
+        const explicitGallery = (fetchedProduct.images && Array.isArray(fetchedProduct.images) && fetchedProduct.images.length > 0)
+          ? fetchedProduct.images
+          : [fetchedProduct.image || '/feralshirt1.png'];
+
         const mappedProduct: Product = {
           id: String(fetchedProduct.id),
           name: fetchedProduct.name || '',
@@ -139,7 +142,7 @@ export default function ProductPage() {
           description: fetchedProduct.description || '',
           details: fetchedProduct.details || '',
           sizes: Array.isArray(fetchedProduct.sizes) ? fetchedProduct.sizes : ['S', 'M', 'L', 'XL'],
-          images: [fetchedProduct.image || '/feralshirt1.png'],
+          images: explicitGallery,
           category: fetchedProduct.category || '',
           isBestseller: fetchedProduct.is_bestseller ?? false,
           inStock: fetchedProduct.in_stock ?? true,
@@ -147,6 +150,10 @@ export default function ProductPage() {
         };
 
         setProduct(mappedProduct);
+
+        if (mappedProduct.sizes.length > 0) {
+          setSelectedSize(mappedProduct.sizes[0]);
+        }
 
         const { data: related, error: relatedError } = await supabase
           .from('products')
@@ -156,24 +163,29 @@ export default function ProductPage() {
           .limit(4);
 
         if (!relatedError && related) {
-          const mappedRelated = related.map((item: any) => ({
-            id: String(item.id),
-            name: item.name,
-            price: item.price,
-            description: item.description || '',
-            details: item.details || '',
-            sizes: item.sizes || ['S', 'M', 'L', 'XL'],
-            images: [item.image || '/feralshirt1.png'],
-            category: item.category,
-            isBestseller: item.is_bestseller ?? false,
-            inStock: item.in_stock ?? true,
-            stockCount: item.stock_count ?? 0,
-          }));
+          const mappedRelated = related.map((item: any) => {
+            const relGallery = (item.images && Array.isArray(item.images) && item.images.length > 0)
+              ? item.images
+              : [item.image || '/feralshirt1.png'];
+
+            return {
+              id: String(item.id),
+              name: item.name,
+              price: item.price,
+              description: item.description || '',
+              details: item.details || '',
+              sizes: item.sizes || ['S', 'M', 'L', 'XL'],
+              images: relGallery,
+              category: item.category,
+              isBestseller: item.is_bestseller ?? false,
+              inStock: item.in_stock ?? true,
+              stockCount: item.stock_count ?? 0,
+            };
+          });
           setRelatedProducts(mappedRelated);
         }
       } catch (err: any) {
-        console.error('Error fetching product:', err);
-        alert('Product fetch error: ' + (err.message || err));
+        console.error('Error fetching product details:', err);
         setProduct(null);
       } finally {
         setLoading(false);
@@ -228,7 +240,6 @@ export default function ProductPage() {
     localStorage.setItem('checkoutItem', JSON.stringify(checkoutItem));
     router.push('/checkout');
   };
-
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] overflow-x-hidden">
       {/* HEADER */}
@@ -277,44 +288,42 @@ export default function ProductPage() {
       {/* PRODUCT SECTION */}
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+          
           {/* LEFT: Image Gallery */}
           <motion.div initial="hidden" animate="visible" variants={imageReveal}>
-            <div className="relative aspect-[3/4] overflow-hidden bg-transparent mb-4 group transition-transform duration-700 hover:scale-95">
-              <motion.img
-                key={selectedImage}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                src={product.images[selectedImage]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
+            <div className="relative aspect-[3/4] overflow-hidden bg-[#111] border border-[#27272a] mb-4">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={product.images[selectedImage]}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  src={product.images[selectedImage] || '/feralshirt1.png'}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              </AnimatePresence>
+              
               {product.isBestseller && (
-                <span className="absolute top-3 left-3 bg-white text-black text-[10px] font-bold uppercase tracking-wider px-2 py-1">
+                <span className="absolute top-3 left-3 bg-white text-black text-[10px] font-bold uppercase tracking-wider px-2 py-1 z-10">
                   BESTSELLER
-                </span>
-              )}
-              {product.inStock && product.stockCount < 10 && (
-                <span className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 animate-pulse">
-                  LOW STOCK
                 </span>
               )}
             </div>
 
-            {product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((img: string, idx: number) => (
-                  <motion.button
+            {product.images && product.images.filter(img => img.trim() !== '').length > 0 && (
+              <div className="grid grid-cols-5 gap-2">
+                {product.images.filter(img => img.trim() !== '').map((img, idx) => (
+                  <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    whileHover={{ scale: 0.95 }}
-                    whileTap={{ scale: 0.92 }}
-                    className={`aspect-[3/4] overflow-hidden bg-transparent transition-all duration-300 ${
-                      selectedImage === idx ? 'opacity-100' : 'opacity-40 hover:opacity-100'
+                    className={`aspect-[3/4] overflow-hidden bg-[#111] border transition-all duration-300 ${
+                      selectedImage === idx ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </motion.button>
+                    <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
             )}
@@ -332,11 +341,11 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
-            <motion.h1 variants={fadeInUp} className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-2">
+            <motion.h1 variants={fadeInUp} className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-2 text-white">
               {product.name}
             </motion.h1>
 
-            <motion.p variants={fadeInUp} className="text-xl md:text-2xl text-[#a1a1aa] mb-4">
+            <motion.p variants={fadeInUp} className="text-xl md:text-2xl text-[#a1a1aa] mb-4 font-mono">
               ৳{product.price.toLocaleString()}
             </motion.p>
 
@@ -359,7 +368,6 @@ export default function ProductPage() {
             <motion.p variants={fadeInUp} className="text-sm text-[#d4d4d8] leading-relaxed mb-6 border-l-2 border-[#52525b]/30 pl-4">
               {product.description}
             </motion.p>
-
             {/* Model Info */}
             <motion.div variants={fadeInUp} className="bg-[#18181b] p-4 mb-6 border border-[#52525b]/20">
               <p className="text-[#a1a1aa] text-xs leading-relaxed">
@@ -402,27 +410,29 @@ export default function ProductPage() {
 
             {/* Quantity & Buttons */}
             <motion.div variants={fadeInUp} className="flex flex-col gap-4 mb-8">
-              <div className="flex border border-[#52525b]/50 w-fit">
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center">-</motion.button>
-                <span className="w-10 h-10 flex items-center justify-center">{quantity}</span>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center">+</motion.button>
+              <div className="flex border border-[#52525b]/50 w-fit bg-black">
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center font-mono">-</motion.button>
+                <span className="w-10 h-10 flex items-center justify-center font-mono text-sm">{quantity}</span>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center font-mono">+</motion.button>
               </div>
               <div className="flex gap-4">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  disabled={!product.inStock}
                   onClick={handleAddToCart}
-                  className={`flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all ${
+                  className={`flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                     addedToCart ? 'bg-emerald-600 text-white' : 'bg-white text-black hover:bg-[#d4d4d8]'
                   }`}
                 >
-                  {addedToCart ? 'ADDED ✓' : 'ADD TO CART'}
+                  {!product.inStock ? 'OUT OF STOCK' : addedToCart ? 'ADDED ✓' : 'ADD TO CART'}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  disabled={!product.inStock}
                   onClick={handleBuyNow}
-                  className="flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all bg-transparent border border-white text-white hover:bg-white hover:text-black"
+                  className="flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all bg-transparent border border-white text-white hover:bg-white hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   BUY NOW
                 </motion.button>
@@ -440,111 +450,56 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
-            {/* Details */}
-            <motion.div variants={fadeInUp} className="border-t border-[#52525b]/20 pt-6 mb-6">
-              <h3 className="text-sm font-bold uppercase tracking-wider mb-3">DETAILS</h3>
-              <p className="text-sm text-[#a1a1aa] whitespace-pre-line">{product.details}</p>
-            </motion.div>
+            {/* Details Section */}
+            {product.details && (
+              <motion.div variants={fadeInUp} className="border-t border-[#52525b]/20 pt-6 mb-6">
+                <h3 className="text-sm font-bold uppercase tracking-wider mb-3">DETAILS</h3>
+                <p className="text-sm text-[#a1a1aa] whitespace-pre-line font-mono text-xs bg-[#111]/30 p-4 border border-white/5">{product.details}</p>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </div>
 
       {/* RELATED PRODUCTS */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        viewport={{ once: true, margin: '-100px' }}
-        className="py-16 md:py-20 border-t border-[#52525b]/20"
-      >
+      <motion.section className="py-16 md:py-20 border-t border-[#52525b]/20">
         <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-            className="text-sm font-black tracking-[0.3em] uppercase text-center mb-12"
-          >
-            YOU MAY ALSO LIKE
-          </motion.h2>
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
-          >
+          <h2 className="text-sm font-black tracking-[0.3em] uppercase text-center mb-12 text-white">YOU MAY ALSO LIKE</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {relatedProducts.map((item) => (
-              <motion.div
-                key={item.id}
-                variants={fadeInUp}
-                whileHover={{ scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Link href={`/product/${item.id}`} className="group">
-                  <div className="aspect-[3/4] overflow-hidden bg-transparent relative">
-                    <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" />
-                    {item.isBestseller && <span className="absolute top-2 left-2 bg-white text-black text-[8px] font-bold uppercase px-1.5 py-0.5">BEST</span>}
-                  </div>
-                  <div className="mt-4 text-center">
-                    <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition">{item.name}</h3>
-                    <p className="text-xs text-[#a1a1aa] mt-1">৳{item.price.toLocaleString()}</p>
-                  </div>
-                </Link>
-              </motion.div>
+              <Link key={item.id} href={`/product/${item.id}`} className="group">
+                <div className="aspect-[3/4] overflow-hidden bg-[#111] border border-white/5 relative">
+                  <img src={item.images[0] || '/feralshirt1.png'} className="w-full h-full object-cover" />
+                </div>
+                <div className="mt-4 text-center">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-[#f4f4f5]">{item.name}</h3>
+                  <p className="text-xs text-[#a1a1aa] mt-1 font-mono">৳{item.price.toLocaleString()}</p>
+                </div>
+              </Link>
             ))}
-          </motion.div>
+          </div>
         </div>
       </motion.section>
 
       {/* SIZE GUIDE MODAL */}
       <AnimatePresence>
         {showSizeGuide && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowSizeGuide(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="bg-[#0a0a0a] border border-white/20 p-6 max-w-sm w-full mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold uppercase">Size Guide</h3>
-                <button onClick={() => setShowSizeGuide(false)}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="space-y-2 text-sm text-[#d4d4d8]">
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowSizeGuide(false)}>
+            <motion.div className="bg-[#0a0a0a] border border-white/20 p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold uppercase text-white">Size Guide</h3></div>
+              <div className="space-y-2 text-sm text-[#d4d4d8] font-mono">
                 <div className="flex justify-between border-b border-[#52525b]/20 py-2"><span>S</span><span>46</span><span>90‑95 cm</span></div>
                 <div className="flex justify-between border-b border-[#52525b]/20 py-2"><span>M</span><span>48</span><span>96‑101 cm</span></div>
                 <div className="flex justify-between border-b border-[#52525b]/20 py-2"><span>L</span><span>50</span><span>102‑107 cm</span></div>
                 <div className="flex justify-between py-2"><span>XL</span><span>52</span><span>108‑113 cm</span></div>
               </div>
-              <p className="text-[10px] text-[#a1a1aa] mt-4 text-center">Measurements are chest circumference</p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* FOOTER */}
       <footer className="pt-12 pb-14 text-center border-t border-[#52525b]/20">
-        <div className="flex gap-6 justify-center mb-8">
-          <a href="https://instagram.com/feral.untamed" target="_blank" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] border border-[#52525b]/30 rounded-full transition-all duration-300 hover:border-white">IG</a>
-          <a href="#" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] border border-[#52525b]/30 rounded-full transition-all duration-300 hover:border-white">FB</a>
-        </div>
-        <div className="text-[10px] tracking-[0.25em] text-[#52525b] uppercase space-y-2">
-          <p>© 2026 FERAL. All rights reserved.</p>
-          <p className="text-[9px] font-mono lowercase tracking-normal">made by shafbitz</p>
-        </div>
+        <p className="text-[10px] tracking-[0.25em] text-[#52525b] uppercase">© 2026 FERAL. All rights reserved.</p>
       </footer>
     </div>
   );

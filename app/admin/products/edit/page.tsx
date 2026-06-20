@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
@@ -8,244 +8,301 @@ const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
 const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default function EditProduct() {
+function EditProductForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = searchParams.get('id');
 
-  const [form, setForm] = useState({
-    name: '',
-    price: '',
-    category: 'tops',
-    image: '',
-    description: '',
-    details: '',
-    sizes: 'S,M,L,XL',
-    is_bestseller: false,
-    in_stock: true,
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
-  // File upload states
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [uploading, setUploading] = useState(false);
+  // Form Field State
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('tops');
+  const [description, setDescription] = useState('');
+  const [details, setDetails] = useState('');
+  const [inStock, setInStock] = useState(true);
+  const [isBestseller, setIsBestseller] = useState(false);
+  
+  const [images, setImages] = useState<string[]>(['', '', '', '', '']);
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const assignProductData = (data: any) => {
+    if (!data) return;
+    setName(data.name || '');
+    setPrice(data.price ? data.price.toString() : '');
+    setCategory(data.category || 'tops');
+    setDescription(data.description || '');
+    setDetails(data.details || '');
+    setInStock(data.in_stock ?? true);
+    setIsBestseller(data.is_bestseller ?? false);
+
+    let loadedImages: string[] = ['', '', '', '', ''];
+    if (data.images && Array.isArray(data.images)) {
+      data.images.forEach((imgUrl, i) => {
+        if (i < 5) loadedImages[i] = imgUrl || '';
+      });
+    } else if (data.image) {
+      loadedImages[0] = data.image;
+    }
+    setImages(loadedImages);
+  };
 
   useEffect(() => {
     if (!productId) {
-      router.push('/admin/products');
+      setError('No product ID provided in the URL.');
+      setFetching(false);
       return;
     }
 
-    async function fetchProduct() {
-      const res = await fetch(`/api/products/${productId}`);
-      if (!res.ok) {
-        setError('Product not found');
-        setLoading(false);
-        return;
+    const fetchProduct = async () => {
+      try {
+        const numericId = Number(productId);
+        if (isNaN(numericId)) {
+          setError(`The ID "${productId}" is not a valid number.`);
+          setFetching(false);
+          return;
+        }
+
+        const { data, error: fetchError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', numericId)
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        if (data) {
+          assignProductData(data);
+        } else {
+          setError(`Product ID ${productId} does not exist in your database.`);
+        }
+      } catch (err: any) {
+        setError(err instanceof Error ? err.message : String(err || 'Fetch failed'));
+      } finally {
+        setFetching(false);
       }
-      const data = await res.json();
-      setForm({
-        name: data.name || '',
-        price: data.price ? String(data.price) : '',
-        category: data.category || 'tops',
-        image: data.image || '',
-        description: data.description || '',
-        details: data.details || '',
-        sizes: Array.isArray(data.sizes) ? data.sizes.join(',') : 'S,M,L,XL',
-        is_bestseller: data.is_bestseller ?? false,
-        in_stock: data.in_stock ?? true,
-      });
-      setLoading(false);
-    }
-
+    };
     fetchProduct();
-  }, [productId, router]);
+  }, [productId]);
 
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setUploadingIndex(index);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_slot_${index}_uuid_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setImages((prevImages) => {
+        const nextImages = [...prevImages];
+        nextImages[index] = publicUrl;
+        return nextImages;
+      });
+    } catch (err: any) {
+      alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setUploadingIndex(null);
+      if (fileInputRefs.current[index]) fileInputRefs.current[index]!.value = '';
     }
   };
 
-  // Upload image to Supabase Storage
-  const uploadImage = async (): Promise<string | null> => {
-    if (!selectedFile) return null;
-    setUploading(true);
-    try {
-      const fileName = `${Date.now()}_${selectedFile.name.replace(/\s+/g, '_')}`;
-      const { error } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, selectedFile, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) {
-        alert('Upload failed: ' + error.message);
-        return null;
-      }
-
-      const { data: publicUrl } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-
-      return publicUrl.publicUrl;
-    } catch (err: any) {
-      alert('Upload error: ' + err.message);
-      return null;
-    } finally {
-      setUploading(false);
-    }
+  const handleUrlTextChange = (value: string, index: number) => {
+    setImages((prevImages) => {
+      const nextImages = [...prevImages];
+      nextImages[index] = value;
+      return nextImages;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    if (!productId) return;
+    setLoading(true);
+    setError(null);
 
-    // If a new file is selected, upload it first
-    let finalImageUrl = form.image; 
-    if (selectedFile) {
-      const uploadedUrl = await uploadImage();
-      if (uploadedUrl) finalImageUrl = uploadedUrl;
-      else {
-        setSaving(false);
-        return;
-      }
-    }
+    const finalImagesArray = images.filter((url) => url && url.trim() !== '');
 
-    const payload = {
-      name: form.name,
-      price: Number(form.price),
-      category: form.category,
-      image: finalImageUrl,
-      description: form.description,
-      details: form.details,
-      sizes: form.sizes.split(',').map(s => s.trim()).filter(s => s),
-      is_bestseller: form.is_bestseller,
-      in_stock: form.in_stock,
+    const updateData = {
+      name,
+      price: parseFloat(price) || 0,
+      category,
+      description,
+      details,
+      in_stock: inStock,
+      is_bestseller: isBestseller,
+      images: finalImagesArray,
+      image: finalImagesArray[0] || '/feralshirt1.png'
     };
 
-    // Corrected target endpoint and aligned method type
-    const res = await fetch(`/api/products/${productId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const numericId = Number(productId);
+      if (isNaN(numericId)) {
+        setError('Invalid product ID.');
+        setLoading(false);
+        return;
+      }
 
-    if (res.ok) {
+      const { data, error: updateError } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', numericId)
+        .select();
+
+      if (updateError) throw updateError;
+
+      if (!data || data.length === 0) {
+        setError(`Update rejected. Check if Row Level Security (RLS) policies permit UPDATE actions for table products.`);
+        setLoading(false);
+        return;
+      }
+
       router.push('/admin/products');
-    } else {
-      const errData = await res.json().catch(() => ({}));
-      alert('Error updating product: ' + (errData.error || 'Unknown error'));
+      router.refresh();
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
     }
-    setSaving(false);
   };
 
-  if (!productId) return null;
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="w-6 h-6 border border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-black text-white p-8">
-        <p className="text-red-400">{error}</p>
-        <button onClick={() => router.push('/admin/products')} className="mt-4 text-neutral-400 underline">
-          Back to products
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8 font-mono">
-      <h1 className="text-2xl font-bold uppercase tracking-wider mb-6">Edit Product</h1>
-      <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
-        <div>
-          <label className="text-xs text-neutral-400">Name</label>
-          <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" />
-        </div>
-        <div>
-          <label className="text-xs text-neutral-400">Price (BDT)</label>
-          <input type="number" required value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" />
-        </div>
-        <div>
-          <label className="text-xs text-neutral-400">Category</label>
-          <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white">
-            <option value="tops">Tops</option>
-            <option value="pants">Pants</option>
-            <option value="jackets">Jackets</option>
-            <option value="denims">Denims</option>
-          </select>
+    <div className="min-h-screen bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased pt-24 pb-16 px-4">
+      <div className="max-w-2xl mx-auto bg-[#0a0a0a] border border-[#27272a] p-6 md:p-8">
+        <div className="flex items-center justify-between mb-8 border-b border-[#27272a] pb-4">
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-wider">EDIT PRODUCT</h1>
+          <button type="button" onClick={() => router.back()} className="text-xs uppercase tracking-widest text-[#a1a1aa] hover:text-white transition-colors font-mono">[ BACK ]</button>
         </div>
 
-        <div>
-          <label className="text-xs text-neutral-400">Product Image</label>
-          <div className="mt-1 flex items-center gap-4">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="text-sm text-neutral-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-white file:text-black hover:file:bg-neutral-200"
-            />
-            {uploading && <span className="text-xs text-neutral-400 animate-pulse">Uploading...</span>}
-          </div>
-          {previewUrl ? (
-            <div className="mt-2 w-32 h-32 overflow-hidden border border-neutral-700">
-              <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-            </div>
-          ) : form.image ? (
-            <div className="mt-2 w-32 h-32 overflow-hidden border border-neutral-700">
-              <img src={form.image} alt="Current" className="w-full h-full object-cover" />
-            </div>
-          ) : null}
-          <p className="text-xs text-neutral-500 mt-1">or paste an image URL:</p>
-          <input type="text" value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" placeholder="https://..." />
-        </div>
+        {error && <div className="bg-red-900/20 border border-red-500 text-red-200 text-xs px-4 py-3 mb-6 font-mono">Status Notice: {error}</div>}
 
-        <div>
-          <label className="text-xs text-neutral-400">Description</label>
-          <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" rows={3} />
-        </div>
-        <div>
-          <label className="text-xs text-neutral-400">Details (care, fabric, etc.)</label>
-          <textarea value={form.details} onChange={e => setForm({ ...form, details: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" rows={3} />
-        </div>
-        <div>
-          <label className="text-xs text-neutral-400">Sizes (comma‑separated)</label>
-          <input type="text" value={form.sizes} onChange={e => setForm({ ...form, sizes: e.target.value })} className="w-full bg-neutral-900 border border-neutral-700 px-3 py-2 text-white" />
-        </div>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={form.is_bestseller} onChange={e => setForm({ ...form, is_bestseller: e.target.checked })} />
-            Bestseller
-          </label>
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={form.in_stock} onChange={e => setForm({ ...form, in_stock: e.target.checked })} />
-            In Stock
-          </label>
-        </div>
-        <div className="flex gap-4">
-          <button type="submit" disabled={saving || uploading} className="bg-white text-black px-6 py-2 uppercase font-bold hover:bg-neutral-200 disabled:opacity-50">
-            {saving ? 'Saving...' : uploading ? 'Uploading Image...' : 'Update Product'}
-          </button>
-          <button type="button" onClick={() => router.push('/admin/products')} className="border border-neutral-700 px-6 py-2 uppercase text-sm hover:border-white">
-            Cancel
-          </button>
-        </div>
-      </form>
+        {fetching && !error ? (
+          <div className="text-xs text-[#a1a1aa] font-mono animate-pulse py-8 text-center">SYNCHRONIZING WITH TABLE RECORD...</div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Product Name</label>
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Price (BDT)</label>
+                <input type="number" required value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors font-mono" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Category</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors appearance-none cursor-pointer">
+                  <option value="tops">Tops</option>
+                  <option value="pants">Pants</option>
+                  <option value="jackets">Jackets</option>
+                  <option value="denims">Denims</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold block">Product Images Gallery (Up to 5 slots)</label>
+              <div className="grid grid-cols-1 gap-3">
+                {images.map((url, index) => (
+                  <div key={`image-slot-${index}`} className="p-3 bg-[#111] border border-white/5 flex gap-4 items-start">
+                    
+                    {/* Live Thumbnail Preview Block on Left */}
+                    <div className="relative w-16 h-16 bg-[#0a0a0a] border border-[#27272a] shrink-0 flex items-center justify-center overflow-hidden group">
+                      {url && url.trim() !== '' ? (
+                        <>
+                          <img 
+                            src={url} 
+                            alt={`Slot ${index + 1}`} 
+                            className="w-full h-full object-cover" 
+                            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} 
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleUrlTextChange('', index)}
+                            className="absolute inset-0 bg-red-900/80 text-white text-[9px] font-mono tracking-wider opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity uppercase"
+                            title="Clear slot"
+                          >
+                            [ REMOVE ]
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-[9px] text-[#444] font-mono tracking-tighter uppercase text-center px-1">EMPTY {index + 1}</span>
+                      )}
+                    </div>
+
+                    {/* Controls Block on Right */}
+                    <div className="flex-1 flex flex-col gap-2 h-full justify-center">
+                      <span className="text-[10px] text-[#71717a] font-mono uppercase flex justify-between">
+                        <span>Image asset slot {index + 1}</span>
+                        {uploadingIndex === index && <span className="text-white animate-pulse font-bold">UPLOADING asset...</span>}
+                      </span>
+                      <div className="flex gap-2 items-center">
+                        <label className="bg-[#0a0a0a] border border-[#27272a] px-3 py-2 text-[10px] uppercase cursor-pointer hover:border-white transition-colors text-[#71717a] hover:text-white font-mono shrink-0">
+                          BROWSE
+                          <input type="file" accept="image/*" ref={(el) => { fileInputRefs.current[index] = el; }} className="hidden" onChange={(e) => handleFileUpload(e, index)} />
+                        </label>
+                        <input 
+                          type="text" 
+                          placeholder="Paste asset location URL..." 
+                          value={url} 
+                          onChange={(e) => handleUrlTextChange(e.target.value, index)} 
+                          className="flex-1 bg-[#0a0a0a] border border-[#27272a] px-3 py-2 text-xs text-[#f4f4f5] focus:outline-none focus:border-white transition-colors font-mono" 
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Description</label>
+              <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-none" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 bg-[#111] p-4 border border-[#27272a]">
+              <label className="flex items-center gap-3 cursor-pointer group select-none">
+                <input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} className="w-4 h-4 accent-white bg-black border border-white/20" />
+                <span className="text-xs uppercase tracking-wider text-[#a1a1aa] group-hover:text-white transition-colors">In Stock</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group select-none">
+                <input type="checkbox" checked={isBestseller} onChange={(e) => setIsBestseller(e.target.checked)} className="w-4 h-4 accent-white bg-black border border-white/20" />
+                <span className="text-xs uppercase tracking-wider text-[#a1a1aa] group-hover:text-white transition-colors">Bestseller</span>
+              </label>
+            </div>
+
+            <button type="submit" disabled={loading} className="w-full bg-white text-black hover:bg-[#d4d4d8] disabled:bg-[#27272a] disabled:text-[#71717a] font-bold uppercase tracking-[0.2em] text-xs py-4 transition-all duration-300">
+              {loading ? 'PUSHING DATABASE UPDATE...' : 'SAVE PRODUCT CHANGES'}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
+  );
+}
+
+export default function EditProduct() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center font-mono">LOADING CONTEXT...</div>}>
+      <EditProductForm />
+    </Suspense>
   );
 }
