@@ -65,6 +65,7 @@ type Product = {
   price: number;
   description: string;
   details: string;
+  modelInfo?: string;
   sizes: string[];
   images: string[];
   category: string;
@@ -109,7 +110,6 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   const productId = params.id as string;
   const addItem = useCartStore((state) => state.addItem);
@@ -119,6 +119,7 @@ export default function ProductPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
   useEffect(() => {
     async function fetchProductData() {
       try {
@@ -141,6 +142,7 @@ export default function ProductPage() {
           price: fetchedProduct.price || 0,
           description: fetchedProduct.description || '',
           details: fetchedProduct.details || '',
+          modelInfo: fetchedProduct.model_info || undefined,
           sizes: Array.isArray(fetchedProduct.sizes) ? fetchedProduct.sizes : ['S', 'M', 'L', 'XL'],
           images: explicitGallery,
           category: fetchedProduct.category || '',
@@ -174,6 +176,7 @@ export default function ProductPage() {
               price: item.price,
               description: item.description || '',
               details: item.details || '',
+              modelInfo: item.model_info || undefined,
               sizes: item.sizes || ['S', 'M', 'L', 'XL'],
               images: relGallery,
               category: item.category,
@@ -240,6 +243,7 @@ export default function ProductPage() {
     localStorage.setItem('checkoutItem', JSON.stringify(checkoutItem));
     router.push('/checkout');
   };
+
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] overflow-x-hidden">
       {/* HEADER */}
@@ -365,29 +369,22 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
-            <motion.p variants={fadeInUp} className="text-sm text-[#d4d4d8] leading-relaxed mb-6 border-l-2 border-[#52525b]/30 pl-4">
+            {/* Description (Admin can just drop raw text / measurements straight here) */}
+            <motion.p variants={fadeInUp} className="text-sm text-[#d4d4d8] whitespace-pre-line leading-relaxed mb-6 border-l-2 border-[#52525b]/30 pl-4">
               {product.description}
             </motion.p>
-            {/* Model Info */}
-            <motion.div variants={fadeInUp} className="bg-[#18181b] p-4 mb-6 border border-[#52525b]/20">
-              <p className="text-[#a1a1aa] text-xs leading-relaxed">
-                <span className="font-bold text-white">Model info</span> – 188 cm / 6'2"<br />
-                Wearing size <span className="font-bold text-white">L</span> for oversized fit.<br />
-                This style runs large — size down for regular fit.
-              </p>
-            </motion.div>
+
+            {/* Dynamic Model Info */}
+            {product.modelInfo && (
+              <motion.div variants={fadeInUp} className="bg-[#18181b] p-4 mb-6 border border-[#52525b]/20 text-xs text-[#a1a1aa] leading-relaxed whitespace-pre-line font-mono">
+                {product.modelInfo}
+              </motion.div>
+            )}
 
             {/* Size Selector */}
             <motion.div variants={fadeInUp} className="mb-6">
               <div className="flex justify-between mb-3">
                 <span className="text-sm font-bold uppercase">Size</span>
-                <motion.button
-                  whileHover={{ opacity: 0.7 }}
-                  onClick={() => setShowSizeGuide(true)}
-                  className="text-xs text-[#a1a1aa] hover:text-white transition"
-                >
-                  Size Guide
-                </motion.button>
               </div>
               <div className="flex gap-3 flex-wrap">
                 {product.sizes.map((size: string) => (
@@ -439,17 +436,6 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
-            {/* Why FERAL */}
-            <motion.div variants={fadeInUp} className="border-t border-[#52525b]/20 pt-6 mb-6">
-              <h3 className="text-sm font-bold uppercase tracking-wider mb-3">Why FERAL</h3>
-              <div className="grid grid-cols-2 gap-3 text-[#a1a1aa] text-xs">
-                <div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" /></svg><span>450gsm heavy cotton</span></div>
-                <div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" /></svg><span>Made for dancefloors</span></div>
-                <div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>Hand‑embroidered sigils</span></div>
-                <div className="flex items-center gap-2"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064" /></svg><span>Ethically made</span></div>
-              </div>
-            </motion.div>
-
             {/* Details Section */}
             {product.details && (
               <motion.div variants={fadeInUp} className="border-t border-[#52525b]/20 pt-6 mb-6">
@@ -457,6 +443,7 @@ export default function ProductPage() {
                 <p className="text-sm text-[#a1a1aa] whitespace-pre-line font-mono text-xs bg-[#111]/30 p-4 border border-white/5">{product.details}</p>
               </motion.div>
             )}
+
           </motion.div>
         </div>
       </div>
@@ -480,23 +467,6 @@ export default function ProductPage() {
           </div>
         </div>
       </motion.section>
-
-      {/* SIZE GUIDE MODAL */}
-      <AnimatePresence>
-        {showSizeGuide && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowSizeGuide(false)}>
-            <motion.div className="bg-[#0a0a0a] border border-white/20 p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold uppercase text-white">Size Guide</h3></div>
-              <div className="space-y-2 text-sm text-[#d4d4d8] font-mono">
-                <div className="flex justify-between border-b border-[#52525b]/20 py-2"><span>S</span><span>46</span><span>90‑95 cm</span></div>
-                <div className="flex justify-between border-b border-[#52525b]/20 py-2"><span>M</span><span>48</span><span>96‑101 cm</span></div>
-                <div className="flex justify-between border-b border-[#52525b]/20 py-2"><span>L</span><span>50</span><span>102‑107 cm</span></div>
-                <div className="flex justify-between py-2"><span>XL</span><span>52</span><span>108‑113 cm</span></div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <footer className="pt-12 pb-14 text-center border-t border-[#52525b]/20">
         <p className="text-[10px] tracking-[0.25em] text-[#52525b] uppercase">© 2026 FERAL. All rights reserved.</p>

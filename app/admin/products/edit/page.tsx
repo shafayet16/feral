@@ -275,7 +275,13 @@ function EditProductForm() {
 
             <div className="flex flex-col gap-2">
               <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Description</label>
-              <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-none" />
+              <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-y font-mono" placeholder="Product details text and size dimensions go here..." />
+            </div>
+
+            {/* PRODUCT DETAILS TEXTAREA */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Product Details Specifications</label>
+              <textarea rows={4} value={details} onChange={(e) => setDetails(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-y font-mono" placeholder="Composition, care instructions, technical specs..." />
             </div>
 
             <div className="grid grid-cols-2 gap-4 bg-[#111] p-4 border border-[#27272a]">
