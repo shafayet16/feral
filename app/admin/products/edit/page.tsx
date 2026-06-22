@@ -31,6 +31,15 @@ function EditProductForm() {
   const [images, setImages] = useState<string[]>(['', '', '', '', '']);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Size stock state
+  const [sizeQuantities, setSizeQuantities] = useState<Record<string, number>>({
+    M: 0,
+    L: 0,
+    XL: 0,
+    XXL: 0,
+  });
+  const [stockCount, setStockCount] = useState<number>(0);
+
   const assignProductData = (data: any) => {
     if (!data) return;
     setName(data.name || '');
@@ -50,6 +59,20 @@ function EditProductForm() {
       loadedImages[0] = data.image;
     }
     setImages(loadedImages);
+
+    // Parse size_quantities
+    const sq = data.size_quantities
+      ? (typeof data.size_quantities === 'string'
+          ? JSON.parse(data.size_quantities)
+          : data.size_quantities)
+      : {};
+    setSizeQuantities({
+      M: sq.M ?? 0,
+      L: sq.L ?? 0,
+      XL: sq.XL ?? 0,
+      XXL: sq.XXL ?? 0,
+    });
+    setStockCount(data.stock_count ?? 0);
   };
 
   useEffect(() => {
@@ -148,7 +171,9 @@ function EditProductForm() {
       in_stock: inStock,
       is_bestseller: isBestseller,
       images: finalImagesArray,
-      image: finalImagesArray[0] || '/feralshirt1.png'
+      image: finalImagesArray[0] || '/feralshirt1.png',
+      size_quantities: sizeQuantities,   // new
+      stock_count: stockCount,           // new
     };
 
     try {
@@ -223,7 +248,6 @@ function EditProductForm() {
                 {images.map((url, index) => (
                   <div key={`image-slot-${index}`} className="p-3 bg-[#111] border border-white/5 flex gap-4 items-start">
                     
-                    {/* Live Thumbnail Preview Block on Left */}
                     <div className="relative w-16 h-16 bg-[#0a0a0a] border border-[#27272a] shrink-0 flex items-center justify-center overflow-hidden group">
                       {url && url.trim() !== '' ? (
                         <>
@@ -247,7 +271,6 @@ function EditProductForm() {
                       )}
                     </div>
 
-                    {/* Controls Block on Right */}
                     <div className="flex-1 flex flex-col gap-2 h-full justify-center">
                       <span className="text-[10px] text-[#71717a] font-mono uppercase flex justify-between">
                         <span>Image asset slot {index + 1}</span>
@@ -278,7 +301,6 @@ function EditProductForm() {
               <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-y font-mono" placeholder="Product details text and size dimensions go here..." />
             </div>
 
-            {/* PRODUCT DETAILS TEXTAREA */}
             <div className="flex flex-col gap-2">
               <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Product Details Specifications</label>
               <textarea rows={4} value={details} onChange={(e) => setDetails(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-y font-mono" placeholder="Composition, care instructions, technical specs..." />
@@ -293,6 +315,51 @@ function EditProductForm() {
                 <input type="checkbox" checked={isBestseller} onChange={(e) => setIsBestseller(e.target.checked)} className="w-4 h-4 accent-white bg-black border border-white/20" />
                 <span className="text-xs uppercase tracking-wider text-[#a1a1aa] group-hover:text-white transition-colors">Bestseller</span>
               </label>
+            </div>
+
+            {/* SIZE STOCK MANAGEMENT */}
+            <div className="space-y-3 bg-[#111] p-4 border border-[#27272a]">
+              <h3 className="text-xs uppercase tracking-widest text-[#71717a] font-bold">
+                Per‑Size Stock Quantities
+              </h3>
+              <div className="grid grid-cols-4 gap-3">
+                {Object.entries(sizeQuantities).map(([size, qty]) => (
+                  <div key={size} className="flex flex-col gap-1">
+                    <label className="text-[10px] uppercase tracking-wider text-[#a1a1aa]">
+                      {size}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={qty}
+                      onChange={(e) =>
+                        setSizeQuantities((prev) => ({
+                          ...prev,
+                          [size]: Math.max(0, parseInt(e.target.value) || 0),
+                        }))
+                      }
+                      className="w-full bg-[#0a0a0a] border border-[#27272a] px-3 py-2 text-sm text-white focus:outline-none focus:border-white transition-colors font-mono"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] uppercase tracking-wider text-[#a1a1aa]">
+                    Total Stock Count
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={stockCount}
+                    onChange={(e) => setStockCount(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full bg-[#0a0a0a] border border-[#27272a] px-3 py-2 text-sm text-white focus:outline-none focus:border-white transition-colors font-mono"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-[#71717a] font-mono">
+                Set zero for out‑of‑stock sizes. In‑stock status above will still override availability if unchecked.
+              </p>
             </div>
 
             <button type="submit" disabled={loading} className="w-full bg-white text-black hover:bg-[#d4d4d8] disabled:bg-[#27272a] disabled:text-[#71717a] font-bold uppercase tracking-[0.2em] text-xs py-4 transition-all duration-300">

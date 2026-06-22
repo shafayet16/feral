@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { motion, AnimatePresence, Variants, useMotionValue, animate } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import { useCartStore } from '@/app/store/cartStore';
 import MobileMenu from '../../MobileMenu';
@@ -25,6 +25,7 @@ type Product = {
   isBestseller: boolean;
   inStock: boolean;
   stockCount: number;
+  sizeQuantities: Record<string, number>;
 };
 
 const fadeInUp: Variants = {
@@ -64,14 +65,120 @@ export default function ProductPage() {
   const [addedToCart, setAddedToCart] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  // Carousel state
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const x = useMotionValue(0);
+
   const productId = params.id as string;
   const addItem = useCartStore((state) => state.addItem);
+
+  // Measure carousel width — runs whenever product loads and on resize
+  useEffect(() => {
+    const measure = () => {
+      const node = carouselRef.current;
+      if (node && node.clientWidth > 0) {
+        setContainerWidth(node.clientWidth);
+      }
+    };
+
+    // Try immediately, then again after paint, then after a short delay
+    // to handle cases where the DOM hasn't fully laid out yet
+    measure();
+    requestAnimationFrame(() => {
+      measure();
+      setTimeout(measure, 100);
+    });
+
+    const observer = new ResizeObserver(measure);
+    if (carouselRef.current) observer.observe(carouselRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [product]); // re-run when product loads so ref is populated
+
+  const snapTo = (index: number) => {
+    const images = product?.images.filter(img => img.trim() !== '') || [];
+    const validIndex = Math.max(0, Math.min(index, images.length - 1));
+    setSelectedImage(validIndex);
+
+    // Fallback to reading the ref directly if containerWidth hasn't been set yet
+    const width = containerWidth > 0 ? containerWidth : (carouselRef.current?.clientWidth ?? 0);
+    if (width > 0) {
+      animate(x, -validIndex * width, {
+        type: 'spring',
+        stiffness: 200,
+        damping: 25,
+        mass: 0.5,
+      });
+    }
+  };
+
+  const goPrev = () => snapTo(selectedImage - 1);
+  const goNext = () => snapTo(selectedImage + 1);
+
+  const handleDragEnd = (_: any, info: any) => {
+    if (containerWidth <= 0) return;
+    const velocity = info.velocity.x;
+    const offset = info.offset.x;
+
+    if (Math.abs(velocity) > 500 || Math.abs(offset) > containerWidth / 4) {
+      const direction = offset < 0 ? 1 : -1;
+      snapTo(selectedImage + direction);
+    } else {
+      snapTo(selectedImage);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Keyboard arrow navigation
+  useEffect(() => {
+    if (!product) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, selectedImage]);
+
+  // Trackpad horizontal swipe on the carousel
+  useEffect(() => {
+    if (!product) return;
+    const node = carouselRef.current;
+    if (!node) return;
+
+    let accumulatedDelta = 0;
+    let rafId: number;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; // ignore vertical scroll
+      e.preventDefault();
+      accumulatedDelta += e.deltaX;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (accumulatedDelta > 40) { goNext(); accumulatedDelta = 0; }
+        else if (accumulatedDelta < -40) { goPrev(); accumulatedDelta = 0; }
+      });
+    };
+
+    node.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      node.removeEventListener('wheel', handleWheel);
+      cancelAnimationFrame(rafId);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, selectedImage]);
 
   useEffect(() => {
     async function fetchProductData() {
@@ -89,6 +196,16 @@ export default function ProductPage() {
           ? fetchedProduct.images
           : [fetchedProduct.image || '/feralshirt1.png'];
 
+        const dynamicSizes = Array.isArray(fetchedProduct.sizes)
+          ? fetchedProduct.sizes.filter((s: string) => s.toUpperCase() !== 'S')
+          : ['M', 'L', 'XL', 'XXL'];
+
+        const sizeQuantities = fetchedProduct.size_quantities
+          ? (typeof fetchedProduct.size_quantities === 'string'
+              ? JSON.parse(fetchedProduct.size_quantities)
+              : fetchedProduct.size_quantities)
+          : {};
+
         const mappedProduct: Product = {
           id: String(fetchedProduct.id),
           name: fetchedProduct.name || '',
@@ -96,18 +213,20 @@ export default function ProductPage() {
           description: fetchedProduct.description || '',
           details: fetchedProduct.details || '',
           modelInfo: fetchedProduct.model_info || undefined,
-          sizes: Array.isArray(fetchedProduct.sizes) ? fetchedProduct.sizes : ['S', 'M', 'L', 'XL'],
+          sizes: dynamicSizes.length > 0 ? dynamicSizes : ['M', 'L', 'XL', 'XXL'],
           images: explicitGallery,
           category: fetchedProduct.category || '',
           isBestseller: fetchedProduct.is_bestseller ?? false,
           inStock: fetchedProduct.in_stock ?? true,
           stockCount: fetchedProduct.stock_count ?? 0,
+          sizeQuantities,
         };
 
         setProduct(mappedProduct);
 
         if (mappedProduct.sizes.length > 0) {
-          setSelectedSize(mappedProduct.sizes[0]);
+          const firstAvailable = mappedProduct.sizes.find(s => (sizeQuantities[s] ?? 0) > 0);
+          setSelectedSize(firstAvailable || mappedProduct.sizes[0]);
         }
 
         const { data: related, error: relatedError } = await supabase
@@ -122,7 +241,12 @@ export default function ProductPage() {
             const relGallery = (item.images && Array.isArray(item.images) && item.images.length > 0)
               ? item.images
               : [item.image || '/feralshirt1.png'];
-
+            const relSizes = Array.isArray(item.sizes)
+              ? item.sizes.filter((s: string) => s.toUpperCase() !== 'S')
+              : ['M', 'L', 'XL', 'XXL'];
+            const relSizeQuant = item.size_quantities
+              ? (typeof item.size_quantities === 'string' ? JSON.parse(item.size_quantities) : item.size_quantities)
+              : {};
             return {
               id: String(item.id),
               name: item.name,
@@ -130,12 +254,13 @@ export default function ProductPage() {
               description: item.description || '',
               details: item.details || '',
               modelInfo: item.model_info || undefined,
-              sizes: item.sizes || ['S', 'M', 'L', 'XL'],
+              sizes: relSizes.length > 0 ? relSizes : ['M', 'L', 'XL', 'XXL'],
               images: relGallery,
               category: item.category,
               isBestseller: item.is_bestseller ?? false,
               inStock: item.in_stock ?? true,
               stockCount: item.stock_count ?? 0,
+              sizeQuantities: relSizeQuant,
             };
           });
           setRelatedProducts(mappedRelated);
@@ -170,9 +295,16 @@ export default function ProductPage() {
     );
   }
 
+  const isAnySizeAvailable = Object.values(product.sizeQuantities || {}).some(qty => qty > 0);
+
   const handleAddToCart = async () => {
     if (!selectedSize) {
       alert('Please select a size');
+      return;
+    }
+    const qtyAvailable = product.sizeQuantities[selectedSize] ?? 0;
+    if (qtyAvailable <= 0) {
+      alert('This size is currently unavailable');
       return;
     }
     await addItem(Number(product.id), quantity, selectedSize);
@@ -183,6 +315,11 @@ export default function ProductPage() {
   const handleBuyNow = () => {
     if (!selectedSize) {
       alert('Please select a size');
+      return;
+    }
+    const qtyAvailable = product.sizeQuantities[selectedSize] ?? 0;
+    if (qtyAvailable <= 0) {
+      alert('This size is currently unavailable');
       return;
     }
     const checkoutItem = {
@@ -197,6 +334,8 @@ export default function ProductPage() {
     router.push('/checkout');
   };
 
+  const visibleImages = product.images.filter(img => img.trim() !== '');
+
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] overflow-x-hidden">
       {/* HEADER */}
@@ -208,7 +347,6 @@ export default function ProductPage() {
         }`}
       >
         <div className="px-4 py-2 md:py-3 md:px-8">
-          {/* Mobile Layout */}
           <div className="flex items-center justify-between md:hidden">
             <div className="w-8">
               <MobileMenu />
@@ -222,18 +360,12 @@ export default function ProductPage() {
                 className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
                 </svg>
               </Link>
             </div>
           </div>
 
-          {/* Desktop Layout */}
           <div className="hidden md:flex items-center justify-between">
             <div className="flex items-center gap-6">
               <MobileMenu />
@@ -247,12 +379,7 @@ export default function ProductPage() {
                 className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
                 </svg>
               </Link>
             </div>
@@ -265,38 +392,122 @@ export default function ProductPage() {
       {/* PRODUCT SECTION */}
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-          
-          {/* LEFT: Image Gallery */}
+
+          {/* LEFT: Instagram-style Carousel */}
           <motion.div initial="hidden" animate="visible" variants={imageReveal}>
-            <div className="relative aspect-[3/4] overflow-hidden bg-[#111] border border-[#27272a] mb-4">
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={product.images[selectedImage]}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  src={product.images[selectedImage] || '/feralshirt1.png'}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </AnimatePresence>
-              
+
+            {/* Main carousel track */}
+            <div
+              ref={carouselRef}
+              className="relative aspect-[3/4] overflow-hidden bg-[#111] border border-[#27272a] mb-3 select-none"
+            >
+              {/* Sliding strip */}
+              <motion.div
+                className="flex h-full cursor-grab active:cursor-grabbing"
+                drag="x"
+                dragConstraints={
+                  containerWidth > 0
+                    ? { left: -containerWidth * (visibleImages.length - 1), right: 0 }
+                    : {}
+                }
+                dragElastic={0.08}
+                dragMomentum={false}
+                onDragEnd={handleDragEnd}
+                style={{ x, width: visibleImages.length * 100 + '%' }}
+              >
+                {visibleImages.map((img, idx) => (
+                  <div
+                    key={idx}
+                    className="h-full flex-shrink-0"
+                    style={{ width: 100 / visibleImages.length + '%' }}
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} view ${idx + 1}`}
+                      className="w-full h-full object-cover pointer-events-none"
+                      draggable="false"
+                    />
+                  </div>
+                ))}
+              </motion.div>
+
+              {/* Bestseller badge */}
               {product.isBestseller && (
                 <span className="absolute top-3 left-3 bg-white text-black text-[10px] font-bold uppercase tracking-wider px-2 py-1 z-10">
                   BESTSELLER
                 </span>
               )}
+
+              {/* Instagram-style dot indicators */}
+              {visibleImages.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                  {visibleImages.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => snapTo(idx)}
+                      aria-label={`Go to image ${idx + 1}`}
+                      className={`rounded-full transition-all duration-300 ${
+                        selectedImage === idx
+                          ? 'w-2 h-2 bg-white'
+                          : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Side arrows + invisible wide tap zones */}
+              {visibleImages.length > 1 && (
+                <>
+                  {/* Invisible left tap zone */}
+                  <button
+                    onClick={goPrev}
+                    className="absolute inset-y-0 left-0 w-1/3 z-10 cursor-pointer"
+                    aria-label="Previous image"
+                  />
+                  {/* Invisible right tap zone */}
+                  <button
+                    onClick={goNext}
+                    className="absolute inset-y-0 right-0 w-1/3 z-10 cursor-pointer"
+                    aria-label="Next image"
+                  />
+
+                  {/* Left visible arrow */}
+                  <button
+                    onClick={goPrev}
+                    aria-label="Previous image"
+                    className={`absolute left-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-9 h-9 border border-white/25 bg-black/50 backdrop-blur-sm transition-all duration-200 hover:bg-black/80 hover:border-white/60 hover:scale-105 active:scale-95 ${selectedImage === 0 ? 'opacity-20 cursor-not-allowed' : 'opacity-100'}`}
+                  >
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Right visible arrow */}
+                  <button
+                    onClick={goNext}
+                    aria-label="Next image"
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 z-30 flex items-center justify-center w-9 h-9 border border-white/25 bg-black/50 backdrop-blur-sm transition-all duration-200 hover:bg-black/80 hover:border-white/60 hover:scale-105 active:scale-95 ${selectedImage === visibleImages.length - 1 ? 'opacity-20 cursor-not-allowed' : 'opacity-100'}`}
+                  >
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
 
-            {product.images && product.images.filter(img => img.trim() !== '').length > 0 && (
+            {/* Thumbnail strip */}
+            {visibleImages.length > 1 && (
               <div className="grid grid-cols-5 gap-2">
-                {product.images.filter(img => img.trim() !== '').map((img, idx) => (
+                {visibleImages.map((img, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setSelectedImage(idx)}
+                    onClick={() => snapTo(idx)}
                     className={`aspect-[3/4] overflow-hidden bg-[#111] border transition-all duration-300 ${
-                      selectedImage === idx ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-100'
+                      selectedImage === idx
+                        ? 'border-white opacity-100'
+                        : 'border-transparent opacity-40 hover:opacity-80'
                     }`}
                   >
                     <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
@@ -304,6 +515,7 @@ export default function ProductPage() {
                 ))}
               </div>
             )}
+
           </motion.div>
 
           {/* RIGHT: Product Details */}
@@ -326,7 +538,7 @@ export default function ProductPage() {
               ৳{product.price.toLocaleString()}
             </motion.p>
 
-            {/* Info and Trust Badges Block */}
+            {/* Trust Badges */}
             <motion.div variants={fadeInUp} className="space-y-3 text-xs text-[#a1a1aa] mb-6 font-mono border-t border-b border-[#27272a] py-4">
               <div className="flex items-center gap-2.5">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -342,7 +554,8 @@ export default function ProductPage() {
               </div>
               <div className="flex items-center gap-2.5">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
                 <span>Secure payment (bKash / Nagad / card)</span>
               </div>
             </motion.div>
@@ -352,7 +565,6 @@ export default function ProductPage() {
               {product.description}
             </motion.p>
 
-            {/* Dynamic Model Info */}
             {product.modelInfo && (
               <motion.div variants={fadeInUp} className="bg-[#18181b] p-4 mb-6 border border-[#52525b]/20 text-xs text-[#a1a1aa] leading-relaxed whitespace-pre-line font-mono">
                 {product.modelInfo}
@@ -365,21 +577,33 @@ export default function ProductPage() {
                 <span className="text-sm font-bold uppercase">Size</span>
               </div>
               <div className="flex gap-3 flex-wrap">
-                {product.sizes.map((size: string) => (
-                  <motion.button
-                    key={size}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedSize(size)}
-                    className={`min-w-[60px] py-3 px-4 border text-sm font-medium uppercase transition-all ${
-                      selectedSize === size
-                        ? 'bg-white text-black border-white'
-                        : 'bg-transparent text-[#d4d4d8] border-[#52525b]/50 hover:border-white'
-                    }`}
-                  >
-                    {size}
-                  </motion.button>
-                ))}
+                {product.sizes.map((size: string) => {
+                  const qty = product.sizeQuantities[size] ?? 0;
+                  const isAvailable = qty > 0;
+                  return (
+                    <motion.button
+                      key={size}
+                      whileHover={isAvailable ? { scale: 1.02 } : {}}
+                      whileTap={isAvailable ? { scale: 0.98 } : {}}
+                      onClick={() => isAvailable && setSelectedSize(size)}
+                      disabled={!isAvailable}
+                      className={`relative min-w-[60px] py-3 px-4 border text-sm font-medium uppercase transition-all ${
+                        !isAvailable
+                          ? 'border-[#52525b]/20 text-[#52525b]/40 cursor-not-allowed'
+                          : selectedSize === size
+                            ? 'bg-white text-black border-white'
+                            : 'bg-transparent text-[#d4d4d8] border-[#52525b]/50 hover:border-white'
+                      }`}
+                    >
+                      {size}
+                      {!isAvailable && (
+                        <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] font-bold px-1 py-0.5 rounded">
+                          OUT
+                        </span>
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
             </motion.div>
 
@@ -394,18 +618,18 @@ export default function ProductPage() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || !isAnySizeAvailable || !selectedSize || (product.sizeQuantities[selectedSize] ?? 0) <= 0}
                   onClick={handleAddToCart}
                   className={`flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                     addedToCart ? 'bg-emerald-600 text-white' : 'bg-white text-black hover:bg-[#d4d4d8]'
                   }`}
                 >
-                  {!product.inStock ? 'OUT OF STOCK' : addedToCart ? 'ADDED ✓' : 'ADD TO CART'}
+                  {!product.inStock || !isAnySizeAvailable ? 'OUT OF STOCK' : addedToCart ? 'ADDED ✓' : 'ADD TO CART'}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || !isAnySizeAvailable || !selectedSize || (product.sizeQuantities[selectedSize] ?? 0) <= 0}
                   onClick={handleBuyNow}
                   className="flex-1 py-3 px-4 font-bold uppercase tracking-wider text-sm transition-all bg-transparent border border-white text-white hover:bg-white hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -421,7 +645,6 @@ export default function ProductPage() {
                 <p className="text-sm text-[#a1a1aa] whitespace-pre-line font-mono text-xs bg-[#111]/30 p-4 border border-white/5">{product.details}</p>
               </motion.div>
             )}
-
           </motion.div>
         </div>
       </div>
