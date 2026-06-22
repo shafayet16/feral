@@ -52,7 +52,7 @@ export default function MobileMenu() {
                 </li>
                 <li>
                   <Link 
-                    href="/tops" 
+                    href="/shop?category=tops" 
                     onClick={() => setIsOpen(false)} 
                     className="text-sm md:text-base uppercase text-[#d4d4d8] hover:text-[#f4f4f5] transition duration-200"
                   >
@@ -61,7 +61,7 @@ export default function MobileMenu() {
                 </li>
                 <li>
                   <Link 
-                    href="/pants" 
+                    href="/shop?category=pants" 
                     onClick={() => setIsOpen(false)} 
                     className="text-sm md:text-base uppercase text-[#d4d4d8] hover:text-[#f4f4f5] transition duration-200"
                   >
@@ -77,16 +77,16 @@ export default function MobileMenu() {
               <ul className="space-y-3">
                 <li>
                   <Link 
-                    href="/new" 
+                    href="/cart" 
                     onClick={() => setIsOpen(false)} 
                     className="text-sm md:text-base uppercase text-[#d4d4d8] hover:text-[#f4f4f5] transition duration-200"
                   >
-                    New Arrivals
+                    Cart
                   </Link>
                 </li>
                 <li>
                   <Link 
-                    href="/bestsellers" 
+                    href="/shop?category=bestsellers" 
                     onClick={() => setIsOpen(false)} 
                     className="text-sm md:text-base uppercase text-[#d4d4d8] hover:text-[#f4f4f5] transition duration-200"
                   >
@@ -95,11 +95,11 @@ export default function MobileMenu() {
                 </li>
                 <li>
                   <Link 
-                    href="/archive" 
+                    href="/" 
                     onClick={() => setIsOpen(false)} 
                     className="text-sm md:text-base uppercase text-[#d4d4d8] hover:text-[#f4f4f5] transition duration-200"
                   >
-                    Archive
+                    Homepage
                   </Link>
                 </li>
               </ul>

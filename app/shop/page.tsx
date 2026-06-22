@@ -89,7 +89,6 @@ function ShopContent() {
     { id: 'tops', name: 'TOPS' },
     { id: 'pants', name: 'PANTS' },
     { id: 'jackets', name: 'JACKETS' },
-    { id: 'denims', name: 'DENIMS' },
   ];
 
   // Apply category filter client‑side on currently loaded products

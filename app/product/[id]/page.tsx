@@ -6,58 +6,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import { useCartStore } from '@/app/store/cartStore';
+import MobileMenu from '../../MobileMenu';
 
 const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
 const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-function MobileMenu() {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <>
-      <motion.button
-        onClick={() => setIsOpen(true)}
-        className="flex flex-col gap-1.5 w-6 h-6 justify-center items-start group"
-        whileTap={{ scale: 0.95 }}
-      >
-        <span className="w-6 h-[2px] bg-[#f4f4f5] transition-all group-hover:w-4"></span>
-        <span className="w-4 h-[2px] bg-[#f4f4f5] transition-all group-hover:w-6"></span>
-        <span className="w-5 h-[2px] bg-[#f4f4f5] transition-all group-hover:w-3"></span>
-      </motion.button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="fixed inset-0 z-50 bg-[#0a0a0a]"
-          >
-            <div className="flex justify-end p-6">
-              <button onClick={() => setIsOpen(false)} className="text-[#f4f4f5]">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <nav className="flex flex-col items-center gap-8 mt-20">
-              {['Shop', 'New', 'Archive', 'Account'].map((item) => (
-                <Link
-                  key={item}
-                  href={`/${item.toLowerCase()}`}
-                  onClick={() => setIsOpen(false)}
-                  className="text-[#f4f4f5] text-lg font-bold uppercase tracking-wider hover:text-[#a1a1aa] transition"
-                >
-                  {item}
-                </Link>
-              ))}
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
 
 type Product = {
   id: string;
@@ -247,45 +200,65 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] overflow-x-hidden">
       {/* HEADER */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
-        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ${
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ease-out ${
           scrolled
-            ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10'
+            ? 'bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.1)]'
             : 'bg-[#0a0a0a]/80 backdrop-blur-sm border-b border-[#52525b]/20'
         }`}
       >
         <div className="px-4 py-2 md:py-3 md:px-8">
+          {/* Mobile Layout */}
           <div className="flex items-center justify-between md:hidden">
-            <div className="w-8"><MobileMenu /></div>
-            <motion.div whileHover={{ scale: 1.05 }}>
-              <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto" />
-            </motion.div>
-            <div className="flex items-center gap-3">
-              <Link href="/cart">
+            <div className="w-8">
+              <MobileMenu />
+            </div>
+            <div>
+              <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto object-contain" />
+            </div>
+            <div className="flex items-center gap-3 w-8 justify-end">
+              <Link
+                href="/cart"
+                className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6"
+                  />
                 </svg>
               </Link>
             </div>
           </div>
+
+          {/* Desktop Layout */}
           <div className="hidden md:flex items-center justify-between">
-            <div className="flex items-center gap-6"><MobileMenu /></div>
-            <motion.div whileHover={{ scale: 1.02 }}>
-              <img src="/ferallogu.png" alt="FERAL" className="h-20 w-auto" />
-            </motion.div>
+            <div className="flex items-center gap-6">
+              <MobileMenu />
+            </div>
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <img src="/ferallogu.png" alt="FERAL" className="h-20 w-auto object-contain" />
+            </div>
             <div className="flex items-center gap-5">
-              <Link href="/cart">
+              <Link
+                href="/cart"
+                className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6"
+                  />
                 </svg>
               </Link>
             </div>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       <div className="h-14 md:h-16"></div>
 
@@ -349,27 +322,32 @@ export default function ProductPage() {
               {product.name}
             </motion.h1>
 
-            <motion.p variants={fadeInUp} className="text-xl md:text-2xl text-[#a1a1aa] mb-4 font-mono">
+            <motion.p variants={fadeInUp} className="text-xl md:text-2xl text-[#a1a1aa] mb-6 font-mono">
               ৳{product.price.toLocaleString()}
             </motion.p>
 
-            {/* Delivery & Returns */}
-            <motion.div variants={fadeInUp} className="space-y-2 text-[#a1a1aa] text-xs mb-6 p-4 bg-[#18181b] border border-[#52525b]/20">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m-4-4H4" /></svg>
-                <span>Free shipping on orders over ৳5,000</span>
+            {/* Info and Trust Badges Block */}
+            <motion.div variants={fadeInUp} className="space-y-3 text-xs text-[#a1a1aa] mb-6 font-mono border-t border-b border-[#27272a] py-4">
+              <div className="flex items-center gap-2.5">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+                <span>Free shipping on orders over ৳2,000</span>
               </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" /></svg>
-                <span>14‑day easy returns</span>
+              <div className="flex items-center gap-2.5">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
+                </svg>
+                <span>Exchange upto 3 days</span>
               </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              <div className="flex items-center gap-2.5">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 <span>Secure payment (bKash / Nagad / card)</span>
               </div>
             </motion.div>
 
-            {/* Description (Admin can just drop raw text / measurements straight here) */}
+            {/* Description */}
             <motion.p variants={fadeInUp} className="text-sm text-[#d4d4d8] whitespace-pre-line leading-relaxed mb-6 border-l-2 border-[#52525b]/30 pl-4">
               {product.description}
             </motion.p>
