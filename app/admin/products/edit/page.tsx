@@ -43,7 +43,7 @@ function EditProductForm() {
 
     let loadedImages: string[] = ['', '', '', '', ''];
     if (data.images && Array.isArray(data.images)) {
-      data.images.forEach((imgUrl, i) => {
+      data.images.forEach((imgUrl: string, i: number) => {
         if (i < 5) loadedImages[i] = imgUrl || '';
       });
     } else if (data.image) {
@@ -274,7 +274,7 @@ function EditProductForm() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Description</label>
+              <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Description (Includes Size Matrix)</label>
               <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors resize-y font-mono" placeholder="Product details text and size dimensions go here..." />
             </div>
 
