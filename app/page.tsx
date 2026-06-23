@@ -40,7 +40,7 @@ export default function Home() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .order('id', { ascending: false }) // Newest item entries first
+        .order('id', { ascending: false })
         .limit(4);
 
       if (!error && data) {
@@ -142,17 +142,14 @@ export default function Home() {
             <div>
               <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto object-contain" />
             </div>
+            {/* Cart icon – now a working link */}
             <div className="flex items-center gap-3 w-8 justify-end">
-              <button className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
+              <Link href="/cart" className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
                 </svg>
-              </button>
-              <button className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </button>
+                <span className="absolute -top-2 -right-2 bg-[#f4f4f5] text-[#0a0a0a] text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">0</span>
+              </Link>
             </div>
           </div>
           
@@ -165,22 +162,12 @@ export default function Home() {
               <img src="/ferallogu.png" alt="FERAL" className="h-20 w-auto object-contain" />
             </div>
             <div className="flex items-center gap-5">
-              <button className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-              <button className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </button>
-              <button className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
+              <Link href="/cart" className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
                 </svg>
                 <span className="absolute -top-2 -right-2 bg-[#f4f4f5] text-[#0a0a0a] text-[8px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">0</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -212,7 +199,7 @@ export default function Home() {
             <Link href="/shop?category=tops" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                 <img src="/feralshirt1.png" alt="Tops" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
                 <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">TOPS</h3>
@@ -222,7 +209,7 @@ export default function Home() {
             <Link href="/shop?category=pants" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                 <img src="/feralpant1.png" alt="Pants" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
                 <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">PANTS</h3>
@@ -232,7 +219,7 @@ export default function Home() {
             <Link href="/shop?category=jackets" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                 <img src="/feralshirt1.png" alt="Jackets" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
                 <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">JACKETS</h3>
@@ -242,7 +229,7 @@ export default function Home() {
             <Link href="/shop?category=denims" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                 <img src="/feralpant1.png" alt="Denims" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
                 <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">DENIMS</h3>
@@ -254,21 +241,17 @@ export default function Home() {
 
       {/* 4. KALAPLANE EDITORIAL PULL QUOTE */}
       <section className="w-full bg-[#0a0a0a] py-16 md:py-24 border-b border-[#52525b]/20">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-            <div className="order-2 md:order-1">
-              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight">Feral</h2>
-              <p className="text-[#a1a1aa] text-sm md:text-base mt-4 leading-relaxed">
-                Where the wild meets the refined. A collection born from chaos, shaped by intention. Each piece tells a story of rebellion and grace.
-              </p>
-              <Link href="/shop" className="inline-block mt-6 text-xs uppercase tracking-wider border-b border-[#52525b] pb-1 hover:border-white transition-colors">
-                EXPLORE THE COLLECTION
-              </Link>
-            </div>
-            <div className="order-1 md:order-2">
-              <div className="relative aspect-[4/3] overflow-hidden bg-[#18181b]">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="flex flex-col items-center gap-8 md:gap-12">
+            <div className="w-full">
+              <div className="relative aspect-[4/3] md:aspect-[16/9] overflow-hidden bg-[#18181b]">
                 <video src="/feralquote.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover" />
               </div>
+            </div>
+            <div className="text-center w-full pt-4">
+              <Link href="/shop" className="inline-block text-sm uppercase tracking-widest border-b border-[#52525b] pb-2 hover:border-white transition-colors">
+                VIEW ALL
+              </Link>
             </div>
           </div>
         </div>
@@ -302,7 +285,7 @@ export default function Home() {
                       alt={product.name} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                     />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-all duration-300" />
+                    {/* Overlay removed – full brightness */}
                   </div>
                   <div className="mt-4 text-center">
                     <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors truncate px-1">
@@ -322,7 +305,6 @@ export default function Home() {
       {/* 7. UNTAMED VIDEO SECTION */}
       <section className="relative w-full bg-[#0a0a0a] py-16 md:py-24 border-b border-[#52525b]/20 overflow-hidden group">
         <div className="absolute inset-0 z-0">
-          <video src="/fluid.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover video-zoom" />
           <div className="absolute inset-0 bg-black/50 transition-all duration-500 group-hover:bg-black/40 group-active:bg-black/60" />
         </div>
         <div className="relative z-10 text-center px-6">
@@ -332,28 +314,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 8. SUB-FOOTER INFO RIBBON */}
-      <section className="w-full bg-[#0a0a0a] text-[10px] md:text-xs font-medium tracking-widest text-[#d4d4d8]/80 py-5 border-b border-[#52525b]/10 overflow-hidden">
-        <div className="animate-marquee slow cursor-pointer">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="flex gap-8 pr-8 items-center flex-shrink-0">
-              <span className="hover:text-[#f4f4f5] active:text-white active:scale-95 transition-all duration-300">puran dhaka</span>
-              <span className="text-[#52525b]/40">•</span>
-              <span className="hover:text-[#f4f4f5] active:text-white active:scale-95 transition-all duration-300">free delivery over x</span>
-              <span className="text-[#52525b]/40">•</span>
-              <span className="hover:text-[#f4f4f5] active:text-white active:scale-95 transition-all duration-300">contact - xxx</span>
-              <span className="text-[#52525b]/40">•</span>
-              <span className="hover:text-[#f4f4f5] active:text-white active:scale-95 transition-all duration-300">email - xxx</span>
-              <span className="text-[#52525b]/40">•</span>
-              <span className="hover:text-[#f4f4f5] active:text-white active:scale-95 transition-all duration-300">deliveries all over bd</span>
-              <span className="text-[#52525b]/40">•</span>
-            </div>
-          ))}
+      {/* FOOTER */}
+      <footer className="w-full bg-[#0a0a0a] pt-16 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
+        <div className="flex flex-col items-center gap-4 mb-10 text-xs md:text-sm tracking-[0.15em] text-[#d4d4d8]/90 font-light uppercase">
+          <p className="transition-colors duration-300 hover:text-white">Designed In Dhaka</p>
+          <p className="transition-colors duration-300 hover:text-white">Delivery Within 2-4 days</p>
+          <p className="transition-colors duration-300 hover:text-white">Delivery all over bangladesh</p>
         </div>
-      </section>
-
-      {/* 9. FOOTER */}
-      <footer className="w-full bg-[#0a0a0a] pt-12 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
         <div className="flex gap-6 mb-8">
           <a href="https://instagram.com/feral.untamed" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" aria-label="Instagram">
@@ -367,13 +334,11 @@ export default function Home() {
             </svg>
           </a>
         </div>
-        
         <div className="leading-relaxed text-[10px] md:text-xs tracking-[0.25em] text-[#52525b] uppercase space-y-2">
           <p className="font-bold text-[#71717a] transition-all duration-300 hover:text-[#a1a1aa] active:text-white">© 2026 FERAL. All rights reserved.</p>
           <p className="text-[9px] font-mono lowercase tracking-normal text-[#52525b]/70 transition-all duration-300 hover:text-[#71717a] active:text-white">made by shafbitz</p>
         </div>
       </footer>
-
     </div>
   );
 }

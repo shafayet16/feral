@@ -11,11 +11,13 @@ const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
 const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// 🔥 FIXED: Added 'categories' as optional array
 type Product = {
   id: string;
   name: string;
   price: number | null;
   category: string;
+  categories?: string[];   // NEW: supports multiple categories
   image: string;
   is_bestseller: boolean;
   in_stock: boolean;
@@ -89,13 +91,18 @@ function ShopContent() {
     { id: 'tops', name: 'TOPS' },
     { id: 'pants', name: 'PANTS' },
     { id: 'jackets', name: 'JACKETS' },
+    { id: 'denims', name: 'DENIMS' },
   ];
 
-  // Apply category filter client‑side on currently loaded products
+  // 🔥 FIXED: Multi‑category filter using the 'categories' array
   const filteredProducts = products.filter(product => {
     if (activeCategory === 'all') return true;
     if (activeCategory === 'bestsellers') return product.is_bestseller === true;
-    return product.category?.toLowerCase() === activeCategory;
+    // Check both new array and legacy single field for backward compatibility
+    return (
+      product.categories?.includes(activeCategory) ||
+      product.category?.toLowerCase() === activeCategory
+    );
   });
 
   return (
@@ -217,7 +224,6 @@ function ShopContent() {
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
-                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-300" />
                       {product.is_bestseller && (
                         <span className="absolute top-3 left-3 bg-white text-black text-[9px] font-bold uppercase tracking-wider px-2 py-1">
                           BESTSELLER

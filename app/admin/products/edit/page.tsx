@@ -8,6 +8,23 @@ const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
 const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Robust error message extractor
+const getErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object') {
+    if ('message' in err && typeof err.message === 'string') return err.message;
+    if ('error' in err && typeof err.error === 'string') return err.error;
+    if ('details' in err && typeof err.details === 'string') return err.details;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  }
+  return 'An unknown error occurred';
+};
+
 function EditProductForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -22,7 +39,7 @@ function EditProductForm() {
   // Form Field State
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('tops');
+  const [categories, setCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [details, setDetails] = useState('');
   const [inStock, setInStock] = useState(true);
@@ -44,7 +61,16 @@ function EditProductForm() {
     if (!data) return;
     setName(data.name || '');
     setPrice(data.price ? data.price.toString() : '');
-    setCategory(data.category || 'tops');
+    
+    // NEW: read categories array, fallback to single category
+    if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+      setCategories(data.categories);
+    } else if (data.category) {
+      setCategories([data.category]);
+    } else {
+      setCategories([]);
+    }
+
     setDescription(data.description || '');
     setDetails(data.details || '');
     setInStock(data.in_stock ?? true);
@@ -60,7 +86,6 @@ function EditProductForm() {
     }
     setImages(loadedImages);
 
-    // Parse size_quantities
     const sq = data.size_quantities
       ? (typeof data.size_quantities === 'string'
           ? JSON.parse(data.size_quantities)
@@ -105,7 +130,7 @@ function EditProductForm() {
           setError(`Product ID ${productId} does not exist in your database.`);
         }
       } catch (err: any) {
-        setError(err instanceof Error ? err.message : String(err || 'Fetch failed'));
+        setError(getErrorMessage(err));
       } finally {
         setFetching(false);
       }
@@ -139,7 +164,7 @@ function EditProductForm() {
         return nextImages;
       });
     } catch (err: any) {
-      alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
+      alert('Upload failed: ' + getErrorMessage(err));
     } finally {
       setUploadingIndex(null);
       if (fileInputRefs.current[index]) fileInputRefs.current[index]!.value = '';
@@ -165,15 +190,16 @@ function EditProductForm() {
     const updateData = {
       name,
       price: parseFloat(price) || 0,
-      category,
+      categories: categories,                 // store array
+      category: categories[0] || '',          // keep legacy for filters
       description,
       details,
       in_stock: inStock,
       is_bestseller: isBestseller,
       images: finalImagesArray,
       image: finalImagesArray[0] || '/feralshirt1.png',
-      size_quantities: sizeQuantities,   // new
-      stock_count: stockCount,           // new
+      size_quantities: sizeQuantities,
+      stock_count: stockCount,
     };
 
     try {
@@ -193,7 +219,7 @@ function EditProductForm() {
       if (updateError) throw updateError;
 
       if (!data || data.length === 0) {
-        setError(`Update rejected. Check if Row Level Security (RLS) policies permit UPDATE actions for table products.`);
+        setError('Update rejected. Check RLS policies.');
         setLoading(false);
         return;
       }
@@ -201,11 +227,13 @@ function EditProductForm() {
       router.push('/admin/products');
       router.refresh();
     } catch (err: any) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
+
+  const categoryOptions = ['tops', 'pants', 'jackets', 'denims'];
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased pt-24 pb-16 px-4">
@@ -232,13 +260,31 @@ function EditProductForm() {
                 <input type="number" required value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors font-mono" />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Category</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-[#111] border border-[#27272a] px-4 py-3 text-sm text-[#f4f4f5] focus:outline-none focus:border-white transition-colors appearance-none cursor-pointer">
-                  <option value="tops">Tops</option>
-                  <option value="pants">Pants</option>
-                  <option value="jackets">Jackets</option>
-                  <option value="denims">Denims</option>
-                </select>
+                <label className="text-xs uppercase tracking-widest text-[#71717a] font-bold">Categories (select all that apply)</label>
+                <div className="flex flex-wrap gap-4 bg-[#111] border border-[#27272a] p-3">
+                  {categoryOptions.map((cat) => (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={categories.includes(cat)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCategories([...categories, cat]);
+                          } else {
+                            setCategories(categories.filter(c => c !== cat));
+                          }
+                        }}
+                        className="w-4 h-4 accent-white bg-black border border-white/20"
+                      />
+                      <span className="text-xs uppercase tracking-wider text-[#a1a1aa] hover:text-white transition-colors">
+                        {cat}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {categories.length === 0 && (
+                  <p className="text-[10px] text-red-400 font-mono">At least one category must be selected.</p>
+                )}
               </div>
             </div>
 
@@ -362,7 +408,7 @@ function EditProductForm() {
               </p>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-white text-black hover:bg-[#d4d4d8] disabled:bg-[#27272a] disabled:text-[#71717a] font-bold uppercase tracking-[0.2em] text-xs py-4 transition-all duration-300">
+            <button type="submit" disabled={loading || categories.length === 0} className="w-full bg-white text-black hover:bg-[#d4d4d8] disabled:bg-[#27272a] disabled:text-[#71717a] font-bold uppercase tracking-[0.2em] text-xs py-4 transition-all duration-300">
               {loading ? 'PUSHING DATABASE UPDATE...' : 'SAVE PRODUCT CHANGES'}
             </button>
           </form>

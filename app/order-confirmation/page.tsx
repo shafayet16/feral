@@ -77,7 +77,7 @@ export default function OrderConfirmationPage() {
               <p className="text-sm mb-4">{order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Just now'}</p>
               <p className="text-xs text-[#a1a1aa] mb-2">TOTAL AMOUNT</p>
               <p className="text-lg font-bold">৳{Number(order.total).toLocaleString()}</p>
-              <p className="text-xs text-[#a1a1aa] mt-4 pt-4 border-t border-[#52525b]/20">A confirmation email has been sent to {order.email}</p>
+              <p className="text-xs text-[#a1a1aa] mt-4 pt-4 border-t border-[#52525b]/20">{order.email}</p>
               
               {/* Items ordered */}
               {order.items && order.items.length > 0 && (
