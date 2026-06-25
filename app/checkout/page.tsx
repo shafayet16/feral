@@ -426,7 +426,7 @@ export default function CheckoutPage() {
                   {/* Smart Autocomplete City Field */}
                   <div className="relative" ref={autocompleteRef}>
                     <label className="block text-xs text-[#a1a1aa] mb-1">
-                      City / District *
+                      District 
                     </label>
                     <input
                       type="text"
@@ -437,7 +437,7 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       onFocus={() => formData.city && setShowSuggestions(true)}
                       className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
-                      placeholder="Type your city (e.g. Dhaka, Bogura)"
+                      placeholder="Type your district (e.g. Dhaka, Bogura)"
                     />
                     
                     {/* Floating Brutalist Results List */}

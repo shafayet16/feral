@@ -316,11 +316,11 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-16 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
-        <div className="flex flex-col items-center gap-4 mb-10 text-xs md:text-sm tracking-[0.15em] text-[#d4d4d8]/90 font-light uppercase">
-          <p className="transition-colors duration-300 hover:text-white">Designed In Dhaka</p>
-          <p className="transition-colors duration-300 hover:text-white">Delivery Within 2-4 days</p>
-          <p className="transition-colors duration-300 hover:text-white">Delivery all over bangladesh</p>
-        </div>
+        <div className="flex flex-col items-center gap-4 mb-10 text-[10px] md:text-sm tracking-[0.15em] text-[#d4d4d8]/90 font-light uppercase">
+  <p className="transition-colors duration-300 hover:text-white">Designed In Dhaka</p>
+  <p className="transition-colors duration-300 hover:text-white">Delivery Within 2-4 days</p>
+  <p className="transition-colors duration-300 hover:text-white">Delivery all over bangladesh</p>
+</div>
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
         <div className="flex gap-6 mb-8">
           <a href="https://instagram.com/feral_bd" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" aria-label="Instagram">
