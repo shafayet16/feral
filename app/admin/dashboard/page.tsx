@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase-client'; // Shared client instance
+import { supabase } from '@/lib/supabase-client';
 
 type Order = {
   id: string;
@@ -18,9 +18,9 @@ type Order = {
   items: any[];
   stock_deducted: boolean;
   created_at: string;
+  transaction_id?: string | null;
 };
 
-// Helper: show relative time (e.g., "5m ago", "2h ago", "12 Jun, 3:45 PM")
 function timeAgo(dateString: string): string {
   const now = new Date();
   const date = new Date(dateString);
@@ -31,9 +31,9 @@ function timeAgo(dateString: string): string {
   const diffDays = Math.floor(diffHr / 24);
 
   if (diffSec < 60) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMin < 60) return diffMin + 'm ago';
+  if (diffHr < 24) return diffHr + 'h ago';
+  if (diffDays < 7) return diffDays + 'd ago';
 
   return date.toLocaleDateString('en-GB', {
     day: 'numeric',
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .order('created_at', { ascending: false }); // newest first
+      .order('created_at', { ascending: false });
 
     if (error) {
       alert('Failed to load orders: ' + error.message);
@@ -62,11 +62,11 @@ export default function AdminDashboard() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
-  // Deduct stock for a specific order (manual or after payment)
   const deductStockForOrder = async (orderId: string) => {
-    // Fetch the order with its items
     const { data: order, error: fetchErr } = await supabase
       .from('orders')
       .select('items, stock_deducted')
@@ -87,7 +87,6 @@ export default function AdminDashboard() {
     for (const item of items) {
       if (!item.product_id || !item.size || !item.quantity) continue;
 
-      // Get current product
       const { data: product, error: prodErr } = await supabase
         .from('products')
         .select('size_quantities, stock_count')
@@ -95,7 +94,7 @@ export default function AdminDashboard() {
         .single();
 
       if (prodErr || !product) {
-        console.error(`Product ${item.product_id} not found, skipping deduction`);
+        console.error('Product ' + item.product_id + ' not found, skipping deduction');
         continue;
       }
 
@@ -122,7 +121,6 @@ export default function AdminDashboard() {
       }
     }
 
-    // Mark order as stock deducted
     const { error: markErr } = await supabase
       .from('orders')
       .update({ stock_deducted: true })
@@ -132,12 +130,10 @@ export default function AdminDashboard() {
       alert('Stock deducted but failed to mark order: ' + markErr.message);
     }
 
-    fetchOrders(); // refresh table
+    fetchOrders();
   };
 
-  // Update payment/order status (with auto-deduction on paid)
   const updateOrder = async (id: string, payment_status?: string, order_status?: string) => {
-    // Fetch current order state BEFORE updating
     const { data: currentOrder, error: fetchErr } = await supabase
       .from('orders')
       .select('payment_status, stock_deducted, items')
@@ -153,7 +149,6 @@ export default function AdminDashboard() {
     if (payment_status) updates.payment_status = payment_status;
     if (order_status) updates.order_status = order_status;
 
-    // Perform the status update
     const { error } = await supabase
       .from('orders')
       .update(updates)
@@ -164,7 +159,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // If marking as paid and stock not yet deducted → auto deduct
     if (
       payment_status === 'paid' &&
       currentOrder.payment_status !== 'paid' &&
@@ -173,7 +167,7 @@ export default function AdminDashboard() {
       await deductStockForOrder(id);
     }
 
-    fetchOrders(); // refresh table
+    fetchOrders();
   };
 
   const deleteOrder = async (id: string) => {
@@ -219,6 +213,7 @@ export default function AdminDashboard() {
                 <th className="p-3 text-left">Items</th>
                 <th className="p-3 text-right">Total</th>
                 <th className="p-3 text-center">Payment</th>
+                <th className="p-3 text-center">Transaction ID</th>
                 <th className="p-3 text-center">Status</th>
                 <th className="p-3 text-center">Ordered</th>
                 <th className="p-3 text-center">Deduct</th>
@@ -265,6 +260,13 @@ export default function AdminDashboard() {
                     >
                       {order.payment_status}
                     </button>
+                  </td>
+                  <td className="p-3 text-center text-[10px] text-neutral-300 font-mono">
+                    {order.transaction_id ? (
+                      <span className="bg-neutral-800 px-1 py-0.5 rounded">{order.transaction_id}</span>
+                    ) : (
+                      <span className="text-neutral-500">—</span>
+                    )}
                   </td>
                   <td className="p-3 text-center">
                     <button

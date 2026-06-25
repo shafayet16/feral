@@ -107,7 +107,6 @@ export default function CheckoutPage() {
     email: '',
     phone: '',
     city: '',
-    division: 'Dhaka',
     postalCode: '',
     address: '',
     paymentMethod: 'cod',
@@ -126,7 +125,6 @@ export default function CheckoutPage() {
 
     loadData();
 
-    // Close recommendations panel if user clicks outside container
     const handleClickOutside = (event: MouseEvent) => {
       if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
@@ -167,8 +165,9 @@ export default function CheckoutPage() {
     return acc + (cleanPrice * qty);
   }, 0);
 
-  const shippingCost = formData.division === 'Dhaka' ? 80 : 130;
-  const orderTotal = subtotal + shippingCost;
+  // Shipping cost: only defined when a district is selected
+  const shippingCost = formData.city ? (formData.city === 'Dhaka' ? 80 : 130) : null;
+  const orderTotal = shippingCost !== null ? subtotal + shippingCost : null;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -176,7 +175,6 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Realtime city filtering triggers
     if (name === 'city') {
       if (value.trim().length > 0) {
         const filtered = BD_DISTRICTS.filter(item =>
@@ -191,11 +189,10 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleSelectCity = (cityName: string, divisionName: string) => {
+  const handleSelectCity = (cityName: string) => {
     setFormData(prev => ({
       ...prev,
       city: cityName,
-      division: divisionName // Automatic assignment sets shipping variables perfectly
     }));
     setShowSuggestions(false);
   };
@@ -208,8 +205,7 @@ export default function CheckoutPage() {
       !formData.email ||
       !formData.phone ||
       !formData.address ||
-      !formData.city ||
-      !formData.division
+      !formData.city
     ) {
       alert('Please fill in all required fields');
       return;
@@ -228,9 +224,8 @@ export default function CheckoutPage() {
       phone: formData.phone,
       address: formData.address,
       city: formData.city,
-      division: formData.division,
       paymentMethod: formData.paymentMethod,
-      shippingCost,
+      shippingCost: shippingCost, // will not be null because city is set
       total: orderTotal,
       transactionId: transactionId || null,
       items: checkoutItems.map(item => ({
@@ -362,12 +357,24 @@ export default function CheckoutPage() {
                   <span>৳{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#a1a1aa]">Shipping ({formData.division})</span>
-                  <span>৳{shippingCost.toLocaleString()}</span>
+                  <span className="text-[#a1a1aa]">Shipping</span>
+                  <span>
+                    {shippingCost !== null ? (
+                      `৳${shippingCost.toLocaleString()}`
+                    ) : (
+                      <span className="text-[#a1a1aa] italic">TBD</span>
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-[#52525b]/20 font-bold">
                   <span>Total</span>
-                  <span>৳{orderTotal.toLocaleString()}</span>
+                  <span>
+                    {orderTotal !== null ? (
+                      `৳${orderTotal.toLocaleString()}`
+                    ) : (
+                      <span className="text-[#a1a1aa] italic">Select district</span>
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
@@ -426,7 +433,7 @@ export default function CheckoutPage() {
                   {/* Smart Autocomplete City Field */}
                   <div className="relative" ref={autocompleteRef}>
                     <label className="block text-xs text-[#a1a1aa] mb-1">
-                      District 
+                      District *
                     </label>
                     <input
                       type="text"
@@ -440,66 +447,53 @@ export default function CheckoutPage() {
                       placeholder="Type your district (e.g. Dhaka, Bogura)"
                     />
                     
-                    {/* Floating Brutalist Results List */}
+                    {/* Floating Brutalist Results List - only district names shown */}
                     {showSuggestions && citySuggestions.length > 0 && (
                       <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-[#0a0a0a] border border-[#52525b]/50 z-50 rounded shadow-2xl custom-scrollbar">
                         {citySuggestions.map((cityObj) => (
                           <div
                             key={cityObj.district}
-                            onClick={() => handleSelectCity(cityObj.district, cityObj.division)}
-                            className="px-4 py-3 text-sm cursor-pointer border-b border-[#52525b]/10 text-left text-zinc-300 hover:bg-white hover:text-black transition-colors duration-150 font-medium flex justify-between items-center"
+                            onClick={() => handleSelectCity(cityObj.district)}
+                            className="px-4 py-3 text-sm cursor-pointer border-b border-[#52525b]/10 text-left text-zinc-300 hover:bg-white hover:text-black transition-colors duration-150 font-medium"
                           >
-                            <span>{cityObj.district}</span>
-                            <span className="text-[10px] uppercase tracking-wider opacity-60 font-mono">
-                              {cityObj.division}
-                            </span>
+                            {cityObj.district}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Read-only Automated Division Tracker */}
-                  <div>
-                    <label className="block text-xs text-[#a1a1aa] mb-1">
-                      Division (Auto-filled)
-                    </label>
-                    <input
-                      type="text"
-                      name="division"
-                      readOnly
-                      value={formData.division}
-                      className="w-full bg-[#18181b] border border-[#52525b]/20 rounded px-4 py-3 text-sm text-zinc-400 select-none cursor-not-allowed outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-[#a1a1aa] mb-1">
-                      Postal Code
-                    </label>
-                    <input
-                      type="text"
-                      name="postalCode"
-                      value={formData.postalCode}
-                      onChange={handleInputChange}
-                      className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
-                      placeholder="e.g. 1230"
-                    />
-                  </div>
-
+                  {/* Address and Postal Code in one row */}
                   <div className="md:col-span-2">
-                    <label className="block text-xs text-[#a1a1aa] mb-1">
-                      Address (Area, House, Road No.) *
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      required
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
-                      placeholder="e.g. House 42, Road 11"
-                    />
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-xs text-[#a1a1aa] mb-1">
+                          Address (Area, House, Road No.) *
+                        </label>
+                        <input
+                          type="text"
+                          name="address"
+                          required
+                          value={formData.address}
+                          onChange={handleInputChange}
+                          className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
+                          placeholder="e.g. House 42, Road 11"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[#a1a1aa] mb-1">
+                          Postal Code
+                        </label>
+                        <input
+                          type="text"
+                          name="postalCode"
+                          value={formData.postalCode}
+                          onChange={handleInputChange}
+                          className="w-full bg-[#0a0a0a] border border-[#52525b]/30 rounded px-4 py-3 text-sm focus:outline-none focus:border-white text-white"
+                          placeholder="e.g. 1230"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -620,7 +614,7 @@ export default function CheckoutPage() {
                       <p className="text-white font-medium">
                         Send{' '}
                         <span className="font-bold">
-                          ৳{orderTotal.toLocaleString()}
+                          ৳{orderTotal !== null ? orderTotal.toLocaleString() : '...'}
                         </span>{' '}
                         to:
                       </p>
@@ -650,7 +644,7 @@ export default function CheckoutPage() {
                       <p className="text-white font-medium">
                         Send{' '}
                         <span className="font-bold">
-                          ৳{orderTotal.toLocaleString()}
+                          ৳{orderTotal !== null ? orderTotal.toLocaleString() : '...'}
                         </span>{' '}
                         to:
                       </p>
@@ -684,9 +678,9 @@ export default function CheckoutPage() {
                 </Link>
                 <button
                   type="submit"
-                  disabled={isProcessing}
+                  disabled={isProcessing || shippingCost === null}
                   className={`flex-1 py-3 px-6 font-bold uppercase tracking-wider text-sm transition ${
-                    isProcessing
+                    isProcessing || shippingCost === null
                       ? 'bg-[#52525b] cursor-not-allowed'
                       : 'bg-white text-black hover:bg-[#d4d4d8]'
                   }`}
