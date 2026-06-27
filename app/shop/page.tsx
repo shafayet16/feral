@@ -29,8 +29,8 @@ function ShopContent() {
   const [activeCategory, setActiveCategory] = useState('all');
 
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const PAGE_SIZE = 8;
+  const [dbHasMore, setDbHasMore] = useState(true);
+  const PAGE_SIZE = 16; // Increased to grab larger product blocks for solid filtering pools
 
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
@@ -49,11 +49,10 @@ function ShopContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 🔥 FIXED: fetch PAGE_SIZE + 1 to know if more exist
   const fetchProducts = async (pageNum: number) => {
     setLoading(true);
     const from = pageNum * PAGE_SIZE;
-    const to = from + PAGE_SIZE; // one extra to check for more
+    const to = from + PAGE_SIZE; 
 
     const { data, error } = await supabase
       .from('products')
@@ -63,7 +62,7 @@ function ShopContent() {
 
     if (error) {
       console.error('Error fetching products:', error);
-      setHasMore(false);
+      setDbHasMore(false);
       setLoading(false);
       return;
     }
@@ -71,7 +70,7 @@ function ShopContent() {
     const hasMoreItems = data.length > PAGE_SIZE;
     const itemsToAdd = data.slice(0, PAGE_SIZE);
 
-    setHasMore(hasMoreItems);
+    setDbHasMore(hasMoreItems);
     setProducts(prev => (pageNum === 0 ? itemsToAdd : [...prev, ...itemsToAdd]));
     setLoading(false);
   };
@@ -80,10 +79,9 @@ function ShopContent() {
     fetchProducts(page);
   }, [page]);
 
-  // Reset pagination when category changes
+  // Reset page pool when category shifts
   useEffect(() => {
     setPage(0);
-    setHasMore(true);
   }, [activeCategory]);
 
   const categories = [
@@ -95,6 +93,7 @@ function ShopContent() {
     { id: 'denims', name: 'DENIMS' },
   ];
 
+  // Filter products cleanly based on selected UI tabs
   const filteredProducts = products.filter(product => {
     if (activeCategory === 'all') return true;
     if (activeCategory === 'bestsellers') return product.is_bestseller === true;
@@ -103,6 +102,13 @@ function ShopContent() {
       product.category?.toLowerCase() === activeCategory
     );
   });
+
+  // Display strict maximum of 8 items at a time for aesthetic layout grids
+  const VISIBLE_COUNT = 8;
+  const visibleProducts = filteredProducts.slice(0, VISIBLE_COUNT);
+
+  // Load more button only shows up if the filtered list actually exceeds the layout limits
+  const showLoadMoreButton = filteredProducts.length > VISIBLE_COUNT || (dbHasMore && filteredProducts.length >= VISIBLE_COUNT);
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased overflow-x-hidden">
@@ -200,18 +206,18 @@ function ShopContent() {
       {/* PRODUCT GRID */}
       <section className="w-full bg-[#0a0a0a] py-12 md:py-16">
         <div className="container mx-auto px-4">
-          {loading && filteredProducts.length === 0 ? (
+          {loading && visibleProducts.length === 0 ? (
             <div className="flex justify-center items-center py-20">
               <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : visibleProducts.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-[#a1a1aa]">No products found in this category.</p>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                {filteredProducts.map(product => (
+                {visibleProducts.map(product => (
                   <Link
                     key={product.id}
                     href={`/product/${product.id}`}
@@ -241,14 +247,18 @@ function ShopContent() {
                 ))}
               </div>
 
-              {/* 🔥 FIXED: Only show Load More if there are more items and not loading */}
-              {hasMore && !loading && (
+              {/* Only displays if there are genuinely more items than 8 for this filter setup */}
+              {showLoadMoreButton && (
                 <div className="text-center mt-10">
                   <button
-                    onClick={() => setPage(prev => prev + 1)}
+                    onClick={() => {
+                      if (filteredProducts.length <= VISIBLE_COUNT && dbHasMore) {
+                        setPage(prev => prev + 1);
+                      }
+                    }}
                     className="border border-[#52525b]/50 text-[#f4f4f5] px-8 py-3 text-xs uppercase tracking-wider hover:border-white transition"
                   >
-                    Load More
+                    {loading ? 'Loading...' : 'Load More'}
                   </button>
                 </div>
               )}
@@ -260,18 +270,22 @@ function ShopContent() {
       {/* FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-16 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
-        <div className="flex gap-6 mb-8">
-          <a href="https://instagram.com/feral_bd" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" aria-label="Instagram">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        
+        {/* CENTERED INSTAGRAM ICON ONLY */}
+        <div className="flex justify-center mb-8">
+          <a 
+            href="https://instagram.com/feral.untamed" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="w-12 h-12 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" 
+            aria-label="Instagram"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM12 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
             </svg>
           </a>
-          <a href="https://facebook.com/yourusername" target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" aria-label="Facebook">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            </svg>
-          </a>
         </div>
+
         <div className="leading-relaxed text-[10px] md:text-xs tracking-[0.25em] text-[#52525b] uppercase space-y-2">
           <p className="font-bold text-[#71717a] transition-all duration-300 hover:text-[#a1a1aa] active:text-white">© 2026 FERAL. All rights reserved.</p>
           <p className="text-[9px] font-mono lowercase tracking-normal text-[#52525b]/70 transition-all duration-300 hover:text-[#71717a] active:text-white">made by shafbitz</p>
