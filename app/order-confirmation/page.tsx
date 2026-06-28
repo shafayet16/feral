@@ -1,4 +1,3 @@
-// app/order-confirmation/page.tsx (full updated file)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,6 +18,17 @@ export default function OrderConfirmationPage() {
         const parsed = JSON.parse(lastOrderRaw);
         setOrder(parsed);
         localStorage.removeItem('lastOrder');
+
+        // Fire Purchase event
+        if (typeof window !== 'undefined' && (window as any).fbq) {
+          (window as any).fbq('track', 'Purchase', {
+            value: Number(parsed.total),
+            currency: 'BDT',
+            content_ids: parsed.items?.map((i: any) => String(i.id)) || [],
+            content_type: 'product',
+            num_items: parsed.items?.reduce((sum: number, i: any) => sum + i.quantity, 0) || 1,
+          });
+        }
       } catch (e) {
         console.error('Could not parse last order', e);
       }
@@ -79,7 +89,6 @@ export default function OrderConfirmationPage() {
               <p className="text-lg font-bold">৳{Number(order.total).toLocaleString()}</p>
               <p className="text-xs text-[#a1a1aa] mt-4 pt-4 border-t border-[#52525b]/20">{order.email}</p>
               
-              {/* Items ordered */}
               {order.items && order.items.length > 0 && (
                 <div className="mt-6 pt-4 border-t border-[#52525b]/20">
                   <p className="text-xs text-[#a1a1aa] mb-4">ITEMS ORDERED</p>
