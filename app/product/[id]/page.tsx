@@ -65,6 +65,7 @@ export default function ProductPage() {
   const [addedToCart, setAddedToCart] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  // Carousel state
   const carouselRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const x = useMotionValue(0);
@@ -72,6 +73,7 @@ export default function ProductPage() {
   const productId = params.id as string;
   const addItem = useCartStore((state) => state.addItem);
 
+  // Measure carousel width — runs whenever product loads and on resize
   useEffect(() => {
     const measure = () => {
       const node = carouselRef.current;
@@ -133,6 +135,7 @@ export default function ProductPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Keyboard arrow navigation
   useEffect(() => {
     if (!product) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -146,6 +149,7 @@ export default function ProductPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, selectedImage]);
 
+  // Trackpad horizontal swipe on the carousel
   useEffect(() => {
     if (!product) return;
     const node = carouselRef.current;
@@ -177,9 +181,11 @@ export default function ProductPage() {
     async function fetchProductData() {
       try {
         setLoading(true);
+        
+        // FIXED: Dropped .select('*') to pull only columns used by the UI
         const { data: fetchedProduct, error: productError } = await supabase
           .from('products')
-          .select('*')
+          .select('id, name, price, description, details, model_info, sizes, images, category, is_bestseller, in_stock, stock_count, size_quantities')
           .eq('id', productId)
           .single();
 
@@ -217,19 +223,15 @@ export default function ProductPage() {
 
         setProduct(mappedProduct);
 
-        // Meta Pixel - ViewContent
-        if (typeof window !== 'undefined' && (window as any).fbq) {
-          (window as any).fbq('track', 'ViewContent');
-        }
-
         if (mappedProduct.sizes.length > 0) {
           const firstAvailable = mappedProduct.sizes.find(s => (sizeQuantities[s] ?? 0) > 0);
           setSelectedSize(firstAvailable || mappedProduct.sizes[0]);
         }
 
+        // FIXED: Dropped secondary .select('*') on related listings query
         const { data: related, error: relatedError } = await supabase
           .from('products')
-          .select('*')
+          .select('id, name, price, description, details, model_info, sizes, images, category, is_bestseller, in_stock, stock_count, size_quantities')
           .neq('id', fetchedProduct.id)
           .eq('category', fetchedProduct.category)
           .limit(4);
@@ -306,12 +308,6 @@ export default function ProductPage() {
       return;
     }
     await addItem(Number(product.id), quantity, selectedSize);
-
-    // Meta Pixel - AddToCart
-    if (typeof window !== 'undefined' && (window as any).fbq) {
-      (window as any).fbq('track', 'AddToCart');
-    }
-
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   };
@@ -359,7 +355,10 @@ export default function ProductPage() {
               <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto object-contain" />
             </div>
             <div className="flex items-center gap-3 w-8 justify-end">
-              <Link href="/cart" className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
+              <Link
+                href="/cart"
+                className="text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
                 </svg>
@@ -375,7 +374,10 @@ export default function ProductPage() {
               <img src="/ferallogu.png" alt="FERAL" className="h-20 w-auto object-contain" />
             </div>
             <div className="flex items-center gap-5">
-              <Link href="/cart" className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
+              <Link
+                href="/cart"
+                className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 6M17 13l1.5 6M9 21h6" />
                 </svg>
@@ -393,10 +395,13 @@ export default function ProductPage() {
 
           {/* LEFT: Instagram-style Carousel */}
           <motion.div initial="hidden" animate="visible" variants={imageReveal}>
+
+            {/* Main carousel track */}
             <div
               ref={carouselRef}
               className="relative aspect-[3/4] overflow-hidden bg-[#111] border border-[#27272a] mb-3 select-none"
             >
+              {/* Sliding strip */}
               <motion.div
                 className="flex h-full cursor-grab active:cursor-grabbing"
                 drag="x"
@@ -420,18 +425,22 @@ export default function ProductPage() {
                       src={img}
                       alt={`${product.name} view ${idx + 1}`}
                       className="w-full h-full object-cover pointer-events-none"
+                      loading="eager" // Keep primary product images priority-loaded
+                      decoding="async"
                       draggable="false"
                     />
                   </div>
                 ))}
               </motion.div>
 
+              {/* Bestseller badge */}
               {product.isBestseller && (
                 <span className="absolute top-3 left-3 bg-white text-black text-[10px] font-bold uppercase tracking-wider px-2 py-1 z-10">
                   BESTSELLER
                 </span>
               )}
 
+              {/* Instagram-style dot indicators */}
               {visibleImages.length > 1 && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
                   {visibleImages.map((_, idx) => (
@@ -449,10 +458,21 @@ export default function ProductPage() {
                 </div>
               )}
 
+              {/* Side arrows + invisible wide tap zones */}
               {visibleImages.length > 1 && (
                 <>
-                  <button onClick={goPrev} className="absolute inset-y-0 left-0 w-1/3 z-10 cursor-pointer" aria-label="Previous image" />
-                  <button onClick={goNext} className="absolute inset-y-0 right-0 w-1/3 z-10 cursor-pointer" aria-label="Next image" />
+                  <button
+                    onClick={goPrev}
+                    className="absolute inset-y-0 left-0 w-1/3 z-10 cursor-pointer"
+                    aria-label="Previous image"
+                  />
+                  <button
+                    onClick={goNext}
+                    className="absolute inset-y-0 right-0 w-1/3 z-10 cursor-pointer"
+                    aria-label="Next image"
+                  />
+
+                  {/* Left visible arrow */}
                   <button
                     onClick={goPrev}
                     aria-label="Previous image"
@@ -462,6 +482,8 @@ export default function ProductPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
+
+                  {/* Right visible arrow */}
                   <button
                     onClick={goNext}
                     aria-label="Next image"
@@ -475,6 +497,7 @@ export default function ProductPage() {
               )}
             </div>
 
+            {/* Thumbnail strip */}
             {visibleImages.length > 1 && (
               <div className="grid grid-cols-5 gap-2">
                 {visibleImages.map((img, idx) => (
@@ -487,11 +510,18 @@ export default function ProductPage() {
                         : 'border-transparent opacity-40 hover:opacity-80'
                     }`}
                   >
-                    <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    <img 
+                      src={img} 
+                      alt={`Thumbnail ${idx + 1}`} 
+                      className="w-full h-full object-cover" 
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </button>
                 ))}
               </div>
             )}
+
           </motion.div>
 
           {/* RIGHT: Product Details */}
@@ -514,6 +544,7 @@ export default function ProductPage() {
               ৳{product.price.toLocaleString()}
             </motion.p>
 
+            {/* Trust Badges */}
             <motion.div variants={fadeInUp} className="space-y-3 text-xs text-[#a1a1aa] mb-6 font-mono border-t border-b border-[#27272a] py-4">
               <div className="flex items-center gap-2.5">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -535,6 +566,7 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
+            {/* Description */}
             <motion.p variants={fadeInUp} className="text-sm text-[#d4d4d8] whitespace-pre-line leading-relaxed mb-6 border-l-2 border-[#52525b]/30 pl-4">
               {product.description}
             </motion.p>
@@ -545,6 +577,7 @@ export default function ProductPage() {
               </motion.div>
             )}
 
+            {/* Size Selector */}
             <motion.div variants={fadeInUp} className="mb-6">
               <div className="flex justify-between mb-3">
                 <span className="text-sm font-bold uppercase">Size</span>
@@ -580,6 +613,7 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
+            {/* Quantity & Buttons */}
             <motion.div variants={fadeInUp} className="flex flex-col gap-4 mb-8">
               <div className="flex border border-[#52525b]/50 w-fit bg-black">
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center font-mono">-</motion.button>
@@ -610,6 +644,7 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
+            {/* Details Section */}
             {product.details && (
               <motion.div variants={fadeInUp} className="border-t border-[#52525b]/20 pt-6 mb-6">
                 <h3 className="text-sm font-bold uppercase tracking-wider mb-3">DETAILS</h3>
@@ -620,7 +655,7 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* RELATED PRODUCTS */}
+      {/* FIXED RELATED PRODUCTS: Added explicit lazy loading to prevent immediate CDN asset download loops */}
       <motion.section className="py-16 md:py-20 border-t border-[#52525b]/20">
         <div className="container mx-auto px-4">
           <h2 className="text-sm font-black tracking-[0.3em] uppercase text-center mb-12 text-white">YOU MAY ALSO LIKE</h2>
@@ -628,7 +663,13 @@ export default function ProductPage() {
             {relatedProducts.map((item) => (
               <Link key={item.id} href={`/product/${item.id}`} className="group">
                 <div className="aspect-[3/4] overflow-hidden bg-[#111] border border-white/5 relative">
-                  <img src={item.images[0] || '/feralshirt1.png'} className="w-full h-full object-cover" />
+                  <img 
+                    src={item.images[0] || '/feralshirt1.png'} 
+                    className="w-full h-full object-cover" 
+                    loading="lazy" 
+                    decoding="async"
+                    alt={item.name}
+                  />
                 </div>
                 <div className="mt-4 text-center">
                   <h3 className="text-xs font-medium uppercase tracking-wide text-[#f4f4f5]">{item.name}</h3>
@@ -640,15 +681,16 @@ export default function ProductPage() {
         </div>
       </motion.section>
 
-      {/* FOOTER */}
+     {/* FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-16 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
+        
         <div className="flex justify-center mb-8">
-          
-            href="https://instagram.com/feral.untamed"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-12 h-12 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95"
+          <a 
+            href="https://instagram.com/feral.untamed" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="w-12 h-12 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" 
             aria-label="Instagram"
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -656,9 +698,10 @@ export default function ProductPage() {
             </svg>
           </a>
         </div>
+
         <div className="leading-relaxed text-[10px] md:text-xs tracking-[0.25em] text-[#52525b] uppercase space-y-2">
-          <p className="font-bold text-[#71717a] transition-all duration-300 hover:text-[#a1a1aa] active:text-white">© 2026 FERAL. All rights reserved.</p>
-          <p className="text-[9px] font-mono lowercase tracking-normal text-[#52525b]/70 transition-all duration-300 hover:text-[#71717a] active:text-white">made by shafbitz</p>
+          <p className="font-bold text-[#71717a]">© 2026 FERAL. All rights reserved.</p>
+          <p className="text-[9px] font-mono lowercase tracking-normal text-[#52525b]/70">made by shafbitz</p>
         </div>
       </footer>
     </div>
