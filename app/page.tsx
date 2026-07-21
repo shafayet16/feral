@@ -198,7 +198,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-2xl mx-auto">
             <Link href="/shop?category=tops" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img src="/feraltop.png" alt="Tops" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <img src="/bhalogenji.webp" alt="Tops" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">
@@ -208,7 +208,7 @@ export default function Home() {
 
             <Link href="/shop?category=pants" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img src="/feralpant1.png" alt="Pants" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <img src="/ntnpantie.webp" alt="Pants" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
               </div>
               <div className="text-center mt-4">

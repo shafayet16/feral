@@ -14,6 +14,7 @@ type Product = {
   price: number;
   category: string;
   image: string;
+  images?: string[]; // Included for storage cleaning calculations
   is_bestseller: boolean;
   in_stock: boolean;
 };
@@ -23,37 +24,69 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
 
   const fetchProducts = async () => {
+    // FIXED: Removed .select('*') to request only specific layout columns to prevent admin dashboard data inflation
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('id, name, price, category, image, images, is_bestseller, in_stock')
       .order('id', { ascending: true });
-    if (!error) setProducts(data || []);
+    
+    if (!error) {
+      // Map item image fields cleanly to ensure baseline cover visualization
+      const mapped = (data || []).map((item: any) => ({
+        ...item,
+        image: item.image || (item.images && item.images[0]) || '/feralshirt1.png'
+      }));
+      setProducts(mapped);
+    }
     setLoading(false);
   };
 
   useEffect(() => { fetchProducts(); }, []);
 
-  // Securely processes the delete request via your backend API route setup
-  const deleteProduct = async (id: string) => {
-    if (!confirm('Delete this product permanently? This cannot be undone.')) return;
+  // Securely processes the delete request via client bucket wipes first to stop storage hoarding
+  const deleteProduct = async (product: Product) => {
+    if (!confirm(`Delete "${product.name}" permanently? This cannot be undone.`)) return;
 
     try {
-      const res = await fetch(`/api/products/${id}`, {
+      // 1. Storage Bucket Cleanup: Purge files before hitting database layers
+      const imageList = product.images || (product.image ? [product.image] : []);
+      if (imageList.length > 0) {
+        const filePaths = imageList
+          .map((url) => {
+            if (!url || typeof url !== 'string') return null;
+            const parts = url.split('/product-images/');
+            return parts[1] ? parts[1] : null;
+          })
+          .filter((path): path is string => path !== null);
+
+        if (filePaths.length > 0) {
+          const { error: storageError } = await supabase
+            .storage
+            .from('product-images')
+            .remove(filePaths);
+
+          if (storageError) {
+            console.warn('Storage files could not be dropped, verifying table constraints:', storageError.message);
+          }
+        }
+      }
+
+      // 2. Call your internal backend endpoint to securely clear the SQL record row
+      const res = await fetch(`/api/products/${product.id}`, {
         method: 'DELETE',
       });
 
       const result = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(result.error || 'Failed to delete product');
+        throw new Error(result.error || 'Failed to delete product from database');
       }
 
-      // Success loop confirmation and localized tree state refresh
+      // Success confirmation and layout state reload
       fetchProducts();
     } catch (error: any) {
       console.error('Delete request error execution:', error);
       
-      // Friendly message loop capturing raw Postgres foreign key blocks
       if (error.message.includes('violates foreign key constraint')) {
         alert(
           'This product can’t be deleted because it’s already been ordered by customers.\n\n' +
@@ -106,15 +139,13 @@ export default function AdminProducts() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {products.map((product) => (
               <div key={product.id} className="group relative">
-                {/* Image container – NO dark overlay, fully visible */}
                 <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                   <img
-                    src={product.image || '/feralshirt1.png'}
+                    src={product.image}
                     alt={product.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
 
-                  {/* Badges – only if in_stock is strictly false */}
                   {product.is_bestseller && (
                     <span className="absolute top-3 left-3 bg-white text-[#0a0a0a] text-[9px] font-bold uppercase tracking-wider px-2 py-1 z-10">
                       BESTSELLER
@@ -126,7 +157,6 @@ export default function AdminProducts() {
                     </span>
                   )}
 
-                  {/* Edit / Delete overlay (only on hover) */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
                     <div className="flex gap-2">
                       <Link
@@ -138,7 +168,7 @@ export default function AdminProducts() {
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          deleteProduct(product.id);
+                          deleteProduct(product); // Pass complete object payload for parsing
                         }}
                         className="bg-red-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2 hover:bg-red-600 transition"
                       >
@@ -148,7 +178,6 @@ export default function AdminProducts() {
                   </div>
                 </div>
 
-                {/* Product info */}
                 <div className="mt-4 text-center">
                   <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">
                     {product.name}
@@ -163,7 +192,6 @@ export default function AdminProducts() {
         )}
       </div>
 
-      {/* Footer */}
       <div className="border-t border-[#52525b]/20 py-6 text-center">
         <p className="text-[10px] tracking-[0.2em] text-[#52525b] uppercase">
           FERAL Admin · Product Management

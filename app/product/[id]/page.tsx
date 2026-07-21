@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { motion, AnimatePresence, Variants, useMotionValue, animate } from 'framer-motion';
+import { motion, Variants, useMotionValue, animate } from 'framer-motion';
 import { createClient } from '@supabase/supabase-js';
 import { useCartStore } from '@/app/store/cartStore';
 import MobileMenu from '../../MobileMenu';
@@ -11,6 +11,17 @@ import MobileMenu from '../../MobileMenu';
 const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
 const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Size sorting helper for proper order
+const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+
+function sortSizes(sizes: string[]): string[] {
+  return [...sizes].sort((a, b) => {
+    const idxA = SIZE_ORDER.indexOf(String(a).toUpperCase().trim());
+    const idxB = SIZE_ORDER.indexOf(String(b).toUpperCase().trim());
+    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+  });
+}
 
 type Product = {
   id: string;
@@ -70,10 +81,10 @@ export default function ProductPage() {
   const [containerWidth, setContainerWidth] = useState(0);
   const x = useMotionValue(0);
 
-  const productId = params.id as string;
+  const productId = params?.id ? String(params.id) : '';
   const addItem = useCartStore((state) => state.addItem);
 
-  // Measure carousel width — runs whenever product loads and on resize
+  // Measure carousel width safely
   useEffect(() => {
     const measure = () => {
       const node = carouselRef.current;
@@ -98,7 +109,7 @@ export default function ProductPage() {
   }, [product]);
 
   const snapTo = (index: number) => {
-    const images = product?.images.filter(img => img.trim() !== '') || [];
+    const images = product?.images && product.images.length > 0 ? product.images : ['/feralshirt1.png'];
     const validIndex = Math.max(0, Math.min(index, images.length - 1));
     setSelectedImage(validIndex);
 
@@ -135,7 +146,7 @@ export default function ProductPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Keyboard arrow navigation
+  // Keyboard navigation
   useEffect(() => {
     if (!product) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -149,7 +160,7 @@ export default function ProductPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, selectedImage]);
 
-  // Trackpad horizontal swipe on the carousel
+  // Trackpad horizontal swipe
   useEffect(() => {
     if (!product) return;
     const node = carouselRef.current;
@@ -179,10 +190,14 @@ export default function ProductPage() {
 
   useEffect(() => {
     async function fetchProductData() {
+      if (!productId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         
-        // FIXED: Dropped .select('*') to pull only columns used by the UI
         const { data: fetchedProduct, error: productError } = await supabase
           .from('products')
           .select('id, name, price, description, details, model_info, sizes, images, category, is_bestseller, in_stock, stock_count, size_quantities')
@@ -191,28 +206,50 @@ export default function ProductPage() {
 
         if (productError || !fetchedProduct) throw productError || new Error('Product not found');
 
-        const explicitGallery = (fetchedProduct.images && Array.isArray(fetchedProduct.images) && fetchedProduct.images.length > 0)
+        // SAFE IMAGE SANITIZATION
+        const rawGallery = Array.isArray(fetchedProduct.images) && fetchedProduct.images.length > 0
           ? fetchedProduct.images
-          : [fetchedProduct.image || '/feralshirt1.png'];
+          : [(fetchedProduct as any).image || '/feralshirt1.png'];
 
-        const dynamicSizes = Array.isArray(fetchedProduct.sizes)
-          ? fetchedProduct.sizes.filter((s: string) => s.toUpperCase() !== 'S')
-          : ['M', 'L', 'XL', 'XXL'];
+        const sanitizedGallery = rawGallery
+          .map((img: any) => (typeof img === 'string' ? img : String(img || '')))
+          .filter((img: string) => img.trim() !== '');
 
-        const sizeQuantities = fetchedProduct.size_quantities
-          ? (typeof fetchedProduct.size_quantities === 'string'
-              ? JSON.parse(fetchedProduct.size_quantities)
-              : fetchedProduct.size_quantities)
-          : {};
+        const explicitGallery = sanitizedGallery.length > 0 ? sanitizedGallery : ['/feralshirt1.png'];
+
+        // PARSE SIZE QUANTITIES
+        let sizeQuantities: Record<string, number> = {};
+        try {
+          if (typeof fetchedProduct.size_quantities === 'string') {
+            sizeQuantities = JSON.parse(fetchedProduct.size_quantities);
+          } else if (typeof fetchedProduct.size_quantities === 'object' && fetchedProduct.size_quantities !== null) {
+            sizeQuantities = fetchedProduct.size_quantities;
+          }
+        } catch {
+          sizeQuantities = {};
+        }
+
+        // STRICT DYNAMIC SIZES DERIVATION
+        // If size_quantities object exists, use its keys strictly. Otherwise fall back to sizes column.
+        let rawSizes: string[] = [];
+        const sqKeys = Object.keys(sizeQuantities);
+
+        if (sqKeys.length > 0) {
+          rawSizes = sqKeys.map((s) => s.toUpperCase().trim());
+        } else if (Array.isArray(fetchedProduct.sizes) && fetchedProduct.sizes.length > 0) {
+          rawSizes = fetchedProduct.sizes.map((s: any) => String(s).toUpperCase().trim());
+        }
+
+        const dynamicSizes = sortSizes(Array.from(new Set(rawSizes)));
 
         const mappedProduct: Product = {
           id: String(fetchedProduct.id),
-          name: fetchedProduct.name || '',
+          name: fetchedProduct.name || 'Feral Item',
           price: fetchedProduct.price || 0,
           description: fetchedProduct.description || '',
           details: fetchedProduct.details || '',
           modelInfo: fetchedProduct.model_info || undefined,
-          sizes: dynamicSizes.length > 0 ? dynamicSizes : ['M', 'L', 'XL', 'XXL'],
+          sizes: dynamicSizes,
           images: explicitGallery,
           category: fetchedProduct.category || '',
           isBestseller: fetchedProduct.is_bestseller ?? false,
@@ -228,39 +265,57 @@ export default function ProductPage() {
           setSelectedSize(firstAvailable || mappedProduct.sizes[0]);
         }
 
-        // FIXED: Dropped secondary .select('*') on related listings query
-        const { data: related, error: relatedError } = await supabase
+        // Fetch Related Products
+        const { data: related } = await supabase
           .from('products')
           .select('id, name, price, description, details, model_info, sizes, images, category, is_bestseller, in_stock, stock_count, size_quantities')
           .neq('id', fetchedProduct.id)
-          .eq('category', fetchedProduct.category)
           .limit(4);
 
-        if (!relatedError && related) {
+        if (related) {
           const mappedRelated = related.map((item: any) => {
-            const relGallery = (item.images && Array.isArray(item.images) && item.images.length > 0)
+            const relGallery = Array.isArray(item.images) && item.images.length > 0
               ? item.images
               : [item.image || '/feralshirt1.png'];
-            const relSizes = Array.isArray(item.sizes)
-              ? item.sizes.filter((s: string) => s.toUpperCase() !== 'S')
-              : ['M', 'L', 'XL', 'XXL'];
-            const relSizeQuant = item.size_quantities
-              ? (typeof item.size_quantities === 'string' ? JSON.parse(item.size_quantities) : item.size_quantities)
-              : {};
+
+            const relSanitized = relGallery
+              .map((img: any) => (typeof img === 'string' ? img : String(img || '')))
+              .filter((img: string) => img.trim() !== '');
+
+            let relSizeQuantities: Record<string, number> = {};
+            try {
+              if (typeof item.size_quantities === 'string') {
+                relSizeQuantities = JSON.parse(item.size_quantities);
+              } else if (typeof item.size_quantities === 'object' && item.size_quantities !== null) {
+                relSizeQuantities = item.size_quantities;
+              }
+            } catch {
+              relSizeQuantities = {};
+            }
+
+            const relSqKeys = Object.keys(relSizeQuantities);
+            let relSizesRaw: string[] = [];
+
+            if (relSqKeys.length > 0) {
+              relSizesRaw = relSqKeys.map((s) => s.toUpperCase().trim());
+            } else if (Array.isArray(item.sizes) && item.sizes.length > 0) {
+              relSizesRaw = item.sizes.map((s: any) => String(s).toUpperCase().trim());
+            }
+
             return {
               id: String(item.id),
-              name: item.name,
-              price: item.price,
+              name: item.name || '',
+              price: item.price || 0,
               description: item.description || '',
               details: item.details || '',
               modelInfo: item.model_info || undefined,
-              sizes: relSizes.length > 0 ? relSizes : ['M', 'L', 'XL', 'XXL'],
-              images: relGallery,
-              category: item.category,
+              sizes: sortSizes(Array.from(new Set(relSizesRaw))),
+              images: relSanitized.length > 0 ? relSanitized : ['/feralshirt1.png'],
+              category: item.category || '',
               isBestseller: item.is_bestseller ?? false,
               inStock: item.in_stock ?? true,
               stockCount: item.stock_count ?? 0,
-              sizeQuantities: relSizeQuant,
+              sizeQuantities: relSizeQuantities,
             };
           });
           setRelatedProducts(mappedRelated);
@@ -273,7 +328,7 @@ export default function ProductPage() {
       }
     }
 
-    if (productId) fetchProductData();
+    fetchProductData();
   }, [productId]);
 
   if (loading) {
@@ -296,6 +351,7 @@ export default function ProductPage() {
   }
 
   const isAnySizeAvailable = Object.values(product.sizeQuantities || {}).some(qty => qty > 0);
+  const visibleImages = product.images && product.images.length > 0 ? product.images : ['/feralshirt1.png'];
 
   const handleAddToCart = async () => {
     if (!selectedSize) {
@@ -328,13 +384,11 @@ export default function ProductPage() {
       price: product.price,
       quantity: quantity,
       size: selectedSize,
-      image: product.images[0],
+      image: visibleImages[0],
     };
     localStorage.setItem('checkoutItem', JSON.stringify(checkoutItem));
     router.push('/checkout');
   };
-
-  const visibleImages = product.images.filter(img => img.trim() !== '');
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] overflow-x-hidden">
@@ -401,7 +455,6 @@ export default function ProductPage() {
               ref={carouselRef}
               className="relative aspect-[3/4] overflow-hidden bg-[#111] border border-[#27272a] mb-3 select-none"
             >
-              {/* Sliding strip */}
               <motion.div
                 className="flex h-full cursor-grab active:cursor-grabbing"
                 drag="x"
@@ -413,19 +466,19 @@ export default function ProductPage() {
                 dragElastic={0.08}
                 dragMomentum={false}
                 onDragEnd={handleDragEnd}
-                style={{ x, width: visibleImages.length * 100 + '%' }}
+                style={{ x, width: (visibleImages.length * 100) + '%' }}
               >
                 {visibleImages.map((img, idx) => (
                   <div
                     key={idx}
                     className="h-full flex-shrink-0"
-                    style={{ width: 100 / visibleImages.length + '%' }}
+                    style={{ width: (100 / (visibleImages.length || 1)) + '%' }}
                   >
                     <img
                       src={img}
                       alt={`${product.name} view ${idx + 1}`}
                       className="w-full h-full object-cover pointer-events-none"
-                      loading="eager" // Keep primary product images priority-loaded
+                      loading="eager"
                       decoding="async"
                       draggable="false"
                     />
@@ -433,14 +486,12 @@ export default function ProductPage() {
                 ))}
               </motion.div>
 
-              {/* Bestseller badge */}
               {product.isBestseller && (
                 <span className="absolute top-3 left-3 bg-white text-black text-[10px] font-bold uppercase tracking-wider px-2 py-1 z-10">
                   BESTSELLER
                 </span>
               )}
 
-              {/* Instagram-style dot indicators */}
               {visibleImages.length > 1 && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
                   {visibleImages.map((_, idx) => (
@@ -458,7 +509,6 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Side arrows + invisible wide tap zones */}
               {visibleImages.length > 1 && (
                 <>
                   <button
@@ -472,7 +522,6 @@ export default function ProductPage() {
                     aria-label="Next image"
                   />
 
-                  {/* Left visible arrow */}
                   <button
                     onClick={goPrev}
                     aria-label="Previous image"
@@ -483,7 +532,6 @@ export default function ProductPage() {
                     </svg>
                   </button>
 
-                  {/* Right visible arrow */}
                   <button
                     onClick={goNext}
                     aria-label="Next image"
@@ -497,7 +545,6 @@ export default function ProductPage() {
               )}
             </div>
 
-            {/* Thumbnail strip */}
             {visibleImages.length > 1 && (
               <div className="grid grid-cols-5 gap-2">
                 {visibleImages.map((img, idx) => (
@@ -655,33 +702,35 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* FIXED RELATED PRODUCTS: Added explicit lazy loading to prevent immediate CDN asset download loops */}
-      <motion.section className="py-16 md:py-20 border-t border-[#52525b]/20">
-        <div className="container mx-auto px-4">
-          <h2 className="text-sm font-black tracking-[0.3em] uppercase text-center mb-12 text-white">YOU MAY ALSO LIKE</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {relatedProducts.map((item) => (
-              <Link key={item.id} href={`/product/${item.id}`} className="group">
-                <div className="aspect-[3/4] overflow-hidden bg-[#111] border border-white/5 relative">
-                  <img 
-                    src={item.images[0] || '/feralshirt1.png'} 
-                    className="w-full h-full object-cover" 
-                    loading="lazy" 
-                    decoding="async"
-                    alt={item.name}
-                  />
-                </div>
-                <div className="mt-4 text-center">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-[#f4f4f5]">{item.name}</h3>
-                  <p className="text-xs text-[#a1a1aa] mt-1 font-mono">৳{item.price.toLocaleString()}</p>
-                </div>
-              </Link>
-            ))}
+      {/* RELATED PRODUCTS */}
+      {relatedProducts.length > 0 && (
+        <motion.section className="py-16 md:py-20 border-t border-[#52525b]/20">
+          <div className="container mx-auto px-4">
+            <h2 className="text-sm font-black tracking-[0.3em] uppercase text-center mb-12 text-white">YOU MAY ALSO LIKE</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {relatedProducts.map((item) => (
+                <Link key={item.id} href={`/product/${item.id}`} className="group">
+                  <div className="aspect-[3/4] overflow-hidden bg-[#111] border border-white/5 relative">
+                    <img 
+                      src={item.images[0] || '/feralshirt1.png'} 
+                      className="w-full h-full object-cover" 
+                      loading="lazy" 
+                      decoding="async"
+                      alt={item.name}
+                    />
+                  </div>
+                  <div className="mt-4 text-center">
+                    <h3 className="text-xs font-medium uppercase tracking-wide text-[#f4f4f5]">{item.name}</h3>
+                    <p className="text-xs text-[#a1a1aa] mt-1 font-mono">৳{item.price.toLocaleString()}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </motion.section>
+        </motion.section>
+      )}
 
-     {/* FOOTER */}
+      {/* FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-16 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
         
