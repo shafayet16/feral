@@ -150,7 +150,7 @@ function EditProductForm() {
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
-        .upload(filePath, file, { cacheControl: '3600', upsert: true });
+        .upload(filePath, file, { cacheControl: '31536000', upsert: true });
 
       if (uploadError) throw uploadError;
 
