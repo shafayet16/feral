@@ -62,7 +62,7 @@ function EditProductForm() {
     setName(data.name || '');
     setPrice(data.price ? data.price.toString() : '');
     
-    // NEW: read categories array, fallback to single category
+    // read categories array, fallback to single category
     if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
       setCategories(data.categories);
     } else if (data.category) {
@@ -144,23 +144,32 @@ function EditProductForm() {
     setUploadingIndex(index);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_slot_${index}_uuid_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-      const filePath = `products/${fileName}`;
+      // 1. Get presigned upload URL from Cloudflare R2 endpoint
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+        }),
+      });
 
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file, { cacheControl: '31536000', upsert: true });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to generate upload link.');
 
-      if (uploadError) throw uploadError;
+      // 2. Upload file directly to Cloudflare R2 bucket
+      const uploadRes = await fetch(data.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
+      if (!uploadRes.ok) throw new Error('Direct upload to Cloudflare R2 failed.');
 
+      // 3. Update state with R2 public CDN URL
       setImages((prevImages) => {
         const nextImages = [...prevImages];
-        nextImages[index] = publicUrl;
+        nextImages[index] = data.publicUrl;
         return nextImages;
       });
     } catch (err: any) {
@@ -320,7 +329,7 @@ function EditProductForm() {
                     <div className="flex-1 flex flex-col gap-2 h-full justify-center">
                       <span className="text-[10px] text-[#71717a] font-mono uppercase flex justify-between">
                         <span>Image asset slot {index + 1}</span>
-                        {uploadingIndex === index && <span className="text-white animate-pulse font-bold">UPLOADING asset...</span>}
+                        {uploadingIndex === index && <span className="text-white animate-pulse font-bold">UPLOADING TO R2...</span>}
                       </span>
                       <div className="flex gap-2 items-center">
                         <label className="bg-[#0a0a0a] border border-[#27272a] px-3 py-2 text-[10px] uppercase cursor-pointer hover:border-white transition-colors text-[#71717a] hover:text-white font-mono shrink-0">

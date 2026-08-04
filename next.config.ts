@@ -11,7 +11,15 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "*.r2.dev",
+        hostname: "*.r2.dev", // Covers pub-fab4e79b5407486695278c53c8ded542.r2.dev
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.feralbd.com", // Ready for production custom domain
+      },
+      {
+        protocol: "https",
+        hostname: "feralbd.com",
       },
     ],
   },
