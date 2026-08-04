@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
-const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://thkbnqmnatphefnnllme.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const R2_PUBLIC_URL = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://pub-fab4e79b5407486695278c53c8ded542.r2.dev';
 
 type Product = {
   id: string;
@@ -14,7 +16,7 @@ type Product = {
   price: number;
   category: string;
   image: string;
-  images?: string[]; // Included for storage cleaning calculations
+  images?: string[];
   is_bestseller: boolean;
   in_stock: boolean;
 };
@@ -23,19 +25,31 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Formats any raw image field into a valid R2 public URL
+  const getImageUrl = (url?: string): string => {
+    if (!url) return '/feralshirt1.png';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Handles cases where relative paths are stored
+    const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+    return `${R2_PUBLIC_URL}/${cleanPath}`;
+  };
+
   const fetchProducts = async () => {
-    // FIXED: Removed .select('*') to request only specific layout columns to prevent admin dashboard data inflation
     const { data, error } = await supabase
       .from('products')
       .select('id, name, price, category, image, images, is_bestseller, in_stock')
       .order('id', { ascending: true });
     
     if (!error) {
-      // Map item image fields cleanly to ensure baseline cover visualization
-      const mapped = (data || []).map((item: any) => ({
-        ...item,
-        image: item.image || (item.images && item.images[0]) || '/feralshirt1.png'
-      }));
+      const mapped = (data || []).map((item: any) => {
+        const rawImage = (item.images && item.images[0]) || item.image;
+        return {
+          ...item,
+          image: getImageUrl(rawImage)
+        };
+      });
       setProducts(mapped);
     }
     setLoading(false);
@@ -43,37 +57,19 @@ export default function AdminProducts() {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  // Securely processes the delete request via client bucket wipes first to stop storage hoarding
   const deleteProduct = async (product: Product) => {
     if (!confirm(`Delete "${product.name}" permanently? This cannot be undone.`)) return;
 
     try {
-      // 1. Storage Bucket Cleanup: Purge files before hitting database layers
-      const imageList = product.images || (product.image ? [product.image] : []);
-      if (imageList.length > 0) {
-        const filePaths = imageList
-          .map((url) => {
-            if (!url || typeof url !== 'string') return null;
-            const parts = url.split('/product-images/');
-            return parts[1] ? parts[1] : null;
-          })
-          .filter((path): path is string => path !== null);
-
-        if (filePaths.length > 0) {
-          const { error: storageError } = await supabase
-            .storage
-            .from('product-images')
-            .remove(filePaths);
-
-          if (storageError) {
-            console.warn('Storage files could not be dropped, verifying table constraints:', storageError.message);
-          }
-        }
-      }
-
-      // 2. Call your internal backend endpoint to securely clear the SQL record row
+      // Send DELETE request to API route (handles DB record + server-side R2 bucket cleanup)
       const res = await fetch(`/api/products/${product.id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          images: product.images || [product.image]
+        })
       });
 
       const result = await res.json().catch(() => ({}));
@@ -82,7 +78,6 @@ export default function AdminProducts() {
         throw new Error(result.error || 'Failed to delete product from database');
       }
 
-      // Success confirmation and layout state reload
       fetchProducts();
     } catch (error: any) {
       console.error('Delete request error execution:', error);
@@ -90,8 +85,7 @@ export default function AdminProducts() {
       if (error.message.includes('violates foreign key constraint')) {
         alert(
           'This product can’t be deleted because it’s already been ordered by customers.\n\n' +
-          'To keep your order history intact, consider marking it as “Out of Stock” instead.\n\n' +
-          'If you really need to delete it, please contact the developer to remove the associated orders first.'
+          'To keep your order history intact, consider marking it as “Out of Stock” instead.'
         );
       } else {
         alert('Delete failed: ' + error.message);
@@ -168,7 +162,7 @@ export default function AdminProducts() {
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          deleteProduct(product); // Pass complete object payload for parsing
+                          deleteProduct(product);
                         }}
                         className="bg-red-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2 hover:bg-red-600 transition"
                       >
