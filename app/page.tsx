@@ -10,20 +10,63 @@ const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
 const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const R2_PUBLIC_URL = 'https://pub-fab4e79b5407486695278c53c8ded542.r2.dev';
+
 type Product = {
   id: string;
   name: string;
   price: number | null;
   category: string;
   image: string;
+  images?: string[];
   is_bestseller: boolean;
   in_stock: boolean;
+};
+
+// Bulletproof Cloudflare R2 URL normalizer (strips legacy Supabase URLs/paths)
+const getProductImageUrl = (product: Product): string => {
+  const rawImage = product.image || (product.images && product.images[0]);
+  if (!rawImage) return '/feralshirt1.png';
+
+  // If it's already a valid external R2 URL
+  if (rawImage.includes('r2.dev') || rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
+    if (rawImage.includes('supabase.co')) {
+      // Extract filename/path from old Supabase URL
+      const parts = rawImage.split('product-images/');
+      if (parts.length > 1) {
+        const relativePath = parts[1].replace(/^\/+/, '');
+        if (relativePath.startsWith('products/')) {
+          return `${R2_PUBLIC_URL}/${relativePath}`;
+        }
+        return `${R2_PUBLIC_URL}/products/${relativePath}`;
+      }
+    } else if (!rawImage.includes('r2.dev')) {
+      return rawImage; // Return external non-supabase URL as-is
+    }
+  }
+
+  if (rawImage.includes('r2.dev')) {
+    return rawImage;
+  }
+
+  // Handle local or database paths containing product-images
+  let cleanPath = rawImage.replace(/^\/+/, '');
+  if (cleanPath.startsWith('product-images/')) {
+    cleanPath = cleanPath.replace('product-images/', '');
+  }
+
+  if (cleanPath.startsWith('products/')) {
+    return `${R2_PUBLIC_URL}/${cleanPath}`;
+  }
+
+  return `${R2_PUBLIC_URL}/products/${cleanPath}`;
 };
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [newDrops, setNewDrops] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageFailed, setImageFailed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,6 +96,19 @@ export default function Home() {
 
     fetchNewDrops();
   }, []);
+
+  const handleImageError = (productId: string, e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const imgElement = e.currentTarget;
+    if (!imageFailed[productId]) {
+      setImageFailed(prev => ({ ...prev, [productId]: true }));
+      const product = newDrops.find(p => p.id === productId);
+      const rawImage = product?.image || '';
+      const filename = rawImage.split('/').pop() || 'feralshirt1.png';
+      imgElement.src = `${R2_PUBLIC_URL}/products/${filename}`;
+    } else {
+      imgElement.src = '/feralshirt1.png';
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased selection:bg-[#d4d4d8] selection:text-[#0a0a0a] overflow-x-hidden">
@@ -142,7 +198,7 @@ export default function Home() {
             <div>
               <img src="/ferallogu.png" alt="FERAL" className="h-16 w-auto object-contain" />
             </div>
-            {/* Cart icon – now a working link */}
+            {/* Cart icon */}
             <div className="flex items-center gap-3 w-8 justify-end">
               <Link href="/cart" className="relative text-[#d4d4d8] hover:text-[#f4f4f5] transition-all duration-300 hover:scale-110 active:scale-90">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,25 +313,29 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {newDrops.map((product) => (
-                <Link key={product.id} href={`/product/${product.id}`} className="group cursor-pointer block">
-                  <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                    <img 
-                      src={product.image || '/feralshirt1.png'} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    />
-                  </div>
-                  <div className="mt-4 text-center">
-                    <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors truncate px-1">
-                      {product.name}
-                    </h3>
-                    <p className="text-xs text-[#a1a1aa] mt-1">
-                      ৳{product.price !== null && product.price !== undefined ? product.price.toLocaleString() : '0'}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+              {newDrops.map((product) => {
+                const imageUrl = getProductImageUrl(product);
+                return (
+                  <Link key={product.id} href={`/product/${product.id}`} className="group cursor-pointer block">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                      <img 
+                        src={imageUrl} 
+                        alt={product.name} 
+                        onError={(e) => handleImageError(product.id, e)}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      />
+                    </div>
+                    <div className="mt-4 text-center">
+                      <h3 className="text-xs md:text-sm font-medium uppercase tracking-wide text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors truncate px-1">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-[#a1a1aa] mt-1">
+                        ৳{product.price !== null && product.price !== undefined ? product.price.toLocaleString() : '0'}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
