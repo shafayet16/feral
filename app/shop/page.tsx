@@ -7,9 +7,36 @@ import { createClient } from '@supabase/supabase-js';
 import MobileMenu from '../MobileMenu';
 
 // Direct Supabase client configuration
-const supabaseUrl = 'https://thkbnqmnatphefnnllme.supabase.co';
-const supabaseAnonKey = 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://thkbnqmnatphefnnllme.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_4U7gn3gCQ3np5-Y9cD-sTQ_b0EWrYdC';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const R2_PUBLIC_URL = (
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://pub-fab4e79b5407486695278c53c8ded542.r2.dev'
+).replace(/\/$/, '');
+
+// Normalizes any image input (array, legacy URL, or filename) into a valid R2 public URL
+const formatImageUrl = (item: any): string => {
+  const rawUrl = (item.images && Array.isArray(item.images) && item.images.length > 0 && item.images[0]) || item.image;
+  
+  if (!rawUrl || typeof rawUrl !== 'string') return '/feralshirt1.png';
+  
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    // Automatically translate old Supabase links if any linger in DB
+    if (rawUrl.includes('/storage/v1/object/public/product-images/')) {
+      const filename = rawUrl.split('/product-images/')[1];
+      return `${R2_PUBLIC_URL}/products/${filename}`;
+    }
+    return rawUrl;
+  }
+
+  // Handle relative paths or filenames
+  const cleanPath = rawUrl.replace(/^\//, '');
+  if (cleanPath.startsWith('products/')) {
+    return `${R2_PUBLIC_URL}/${cleanPath}`;
+  }
+  return `${R2_PUBLIC_URL}/products/${cleanPath}`;
+};
 
 type Product = {
   id: string;
@@ -18,6 +45,7 @@ type Product = {
   category: string;
   categories?: string[];
   image: string;
+  images?: string[];
   is_bestseller: boolean;
   in_stock: boolean;
 };
@@ -30,7 +58,7 @@ function ShopContent() {
 
   const [page, setPage] = useState(0);
   const [dbHasMore, setDbHasMore] = useState(true);
-  const PAGE_SIZE = 16; // Increased to grab larger product blocks for solid filtering pools
+  const PAGE_SIZE = 16; 
 
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
@@ -68,7 +96,12 @@ function ShopContent() {
     }
 
     const hasMoreItems = data.length > PAGE_SIZE;
-    const itemsToAdd = data.slice(0, PAGE_SIZE);
+    
+    // Map items to sanitize all image URLs to Cloudflare R2
+    const itemsToAdd = data.slice(0, PAGE_SIZE).map((item: any) => ({
+      ...item,
+      image: formatImageUrl(item)
+    }));
 
     setDbHasMore(hasMoreItems);
     setProducts(prev => (pageNum === 0 ? itemsToAdd : [...prev, ...itemsToAdd]));
@@ -79,7 +112,6 @@ function ShopContent() {
     fetchProducts(page);
   }, [page]);
 
-  // Reset page pool when category shifts
   useEffect(() => {
     setPage(0);
   }, [activeCategory]);
@@ -93,7 +125,6 @@ function ShopContent() {
     { id: 'denims', name: 'DENIMS' },
   ];
 
-  // Filter products cleanly based on selected UI tabs
   const filteredProducts = products.filter(product => {
     if (activeCategory === 'all') return true;
     if (activeCategory === 'bestsellers') return product.is_bestseller === true;
@@ -103,11 +134,9 @@ function ShopContent() {
     );
   });
 
-  // Display strict maximum of 8 items at a time for aesthetic layout grids
   const VISIBLE_COUNT = 8;
   const visibleProducts = filteredProducts.slice(0, VISIBLE_COUNT);
 
-  // Load more button only shows up if the filtered list actually exceeds the layout limits
   const showLoadMoreButton = filteredProducts.length > VISIBLE_COUNT || (dbHasMore && filteredProducts.length >= VISIBLE_COUNT);
 
   return (
@@ -225,7 +254,7 @@ function ShopContent() {
                   >
                     <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                       <img
-                        src={product.image || '/feralshirt1.png'}
+                        src={product.image}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
@@ -247,7 +276,6 @@ function ShopContent() {
                 ))}
               </div>
 
-              {/* Only displays if there are genuinely more items than 8 for this filter setup */}
               {showLoadMoreButton && (
                 <div className="text-center mt-10">
                   <button
@@ -271,7 +299,6 @@ function ShopContent() {
       <footer className="w-full bg-[#0a0a0a] pt-16 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
         
-        {/* CENTERED INSTAGRAM ICON ONLY */}
         <div className="flex justify-center mb-8">
           <a 
             href="https://instagram.com/feral.untamed" 
