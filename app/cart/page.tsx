@@ -4,6 +4,33 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/app/store/cartStore';
 
+const R2_PUBLIC_URL = (
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://pub-fab4e79b5407486695278c53c8ded542.r2.dev'
+).replace(/\/$/, '');
+
+// Normalizes any image input (array, legacy Supabase URL, or filename) into a valid R2 public URL
+const formatImageUrl = (productInfo: any): string => {
+  const rawUrl = (productInfo?.images && Array.isArray(productInfo.images) && productInfo.images.length > 0 && productInfo.images[0]) || productInfo?.image;
+  
+  if (!rawUrl || typeof rawUrl !== 'string') return '/feralshirt1.png';
+  
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    // Automatically translate old Supabase links if any linger in DB
+    if (rawUrl.includes('/storage/v1/object/public/product-images/')) {
+      const filename = rawUrl.split('/product-images/')[1];
+      return `${R2_PUBLIC_URL}/products/${filename}`;
+    }
+    return rawUrl;
+  }
+
+  // Handle relative paths or filenames
+  const cleanPath = rawUrl.replace(/^\//, '');
+  if (cleanPath.startsWith('products/')) {
+    return `${R2_PUBLIC_URL}/${cleanPath}`;
+  }
+  return `${R2_PUBLIC_URL}/products/${cleanPath}`;
+};
+
 export default function CartPage() {
   const { items, isLoading, fetchCart, removeItem, updateQuantity, getTotal, getCount } = useCartStore();
 
@@ -53,7 +80,7 @@ export default function CartPage() {
             {items.map((item) => {
               const productInfo = item.products;
               const productName = productInfo?.name || 'FERAL PIECE';
-              const productImg = productInfo?.image || '/fallback.png';
+              const productImg = formatImageUrl(productInfo);
               const productPrice = Number(productInfo?.price || 0);
 
               return (
@@ -150,7 +177,6 @@ export default function CartPage() {
                   Checkout
                 </Link>
                 
-                {/* Clean inline footnote matching adidas standard placement */}
                 <p className="text-[10px] font-mono text-neutral-600 uppercase tracking-widest text-center leading-normal">
                   Taxes & duties adjusted throughout checkout processing.
                 </p>

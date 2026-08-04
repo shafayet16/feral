@@ -6,6 +6,34 @@ import { useRouter } from 'next/navigation';
 import MobileMenu from '../MobileMenu';
 import { useCartStore } from '@/app/store/cartStore';
 
+const R2_PUBLIC_URL = (
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL || 'https://pub-fab4e79b5407486695278c53c8ded542.r2.dev'
+).replace(/\/$/, '');
+
+// Normalizes any image input (array, legacy Supabase URL, or filename) into a valid R2 public URL
+const formatImageUrl = (item: any): string => {
+  const rawUrl = 
+    item?.image ?? 
+    (item?.products?.images && Array.isArray(item.products.images) && item.products.images.length > 0 && item.products.images[0]) ?? 
+    item?.products?.image;
+  
+  if (!rawUrl || typeof rawUrl !== 'string') return '/feralshirt1.png';
+  
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    if (rawUrl.includes('/storage/v1/object/public/product-images/')) {
+      const filename = rawUrl.split('/product-images/')[1];
+      return `${R2_PUBLIC_URL}/products/${filename}`;
+    }
+    return rawUrl;
+  }
+
+  const cleanPath = rawUrl.replace(/^\//, '');
+  if (cleanPath.startsWith('products/')) {
+    return `${R2_PUBLIC_URL}/${cleanPath}`;
+  }
+  return `${R2_PUBLIC_URL}/products/${cleanPath}`;
+};
+
 const BD_DISTRICTS = [
   // Dhaka Division (13 districts)
   { district: 'Dhaka', division: 'Dhaka' },
@@ -165,7 +193,6 @@ export default function CheckoutPage() {
     return acc + (cleanPrice * qty);
   }, 0);
 
-  // Shipping cost: only defined when a district is selected
   const shippingCost = formData.city ? (formData.city === 'Dhaka' ? 80 : 130) : null;
   const orderTotal = shippingCost !== null ? subtotal + shippingCost : null;
 
@@ -225,7 +252,7 @@ export default function CheckoutPage() {
       address: formData.address,
       city: formData.city,
       paymentMethod: formData.paymentMethod,
-      shippingCost: shippingCost, // will not be null because city is set
+      shippingCost: shippingCost,
       total: orderTotal,
       transactionId: transactionId || null,
       items: checkoutItems.map(item => ({
@@ -330,7 +357,7 @@ export default function CheckoutPage() {
                   const name = item.name ?? item.products?.name ?? 'Feral Apparel';
                   const rawPrice = item.price ?? item.products?.price ?? 0;
                   const price = Number(rawPrice);
-                  const image = item.image ?? item.products?.image ?? '/feralshirt1.png';
+                  const image = formatImageUrl(item);
                   return (
                     <div
                       key={`${item.id}-${item.size}-${index}`}
@@ -447,7 +474,6 @@ export default function CheckoutPage() {
                       placeholder="Type your district (e.g. Dhaka, Bogura)"
                     />
                     
-                    {/* Floating Brutalist Results List - only district names shown */}
                     {showSuggestions && citySuggestions.length > 0 && (
                       <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-[#0a0a0a] border border-[#52525b]/50 z-50 rounded shadow-2xl custom-scrollbar">
                         {citySuggestions.map((cityObj) => (
@@ -463,7 +489,7 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  {/* Address and Postal Code in one row */}
+                  {/* Address and Postal Code */}
                   <div className="md:col-span-2">
                     <div className="grid md:grid-cols-3 gap-4">
                       <div className="md:col-span-2">
@@ -504,7 +530,6 @@ export default function CheckoutPage() {
                   PAYMENT METHOD
                 </h2>
                 <div className="grid gap-3">
-                  {/* Cash on Delivery Card */}
                   <label
                     className={`flex items-center justify-between p-4 border transition-all duration-300 cursor-pointer rounded select-none ${
                       formData.paymentMethod === 'cod'
@@ -538,7 +563,6 @@ export default function CheckoutPage() {
                     />
                   </label>
 
-                  {/* bKash Card */}
                   <label
                     className={`flex items-center justify-between p-4 border transition-all duration-300 cursor-pointer rounded select-none ${
                       formData.paymentMethod === 'bkash'
@@ -572,7 +596,6 @@ export default function CheckoutPage() {
                     />
                   </label>
 
-                  {/* Nagad Card */}
                   <label
                     className={`flex items-center justify-between p-4 border transition-all duration-300 cursor-pointer rounded select-none ${
                       formData.paymentMethod === 'nagad'
@@ -607,7 +630,6 @@ export default function CheckoutPage() {
                   </label>
                 </div>
 
-                {/* bKash Panel */}
                 {formData.paymentMethod === 'bkash' && (
                   <div className="mt-6 border-t border-[#52525b]/20 pt-6">
                     <div className="space-y-3 text-sm">
@@ -637,7 +659,6 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {/* Nagad Panel */}
                 {formData.paymentMethod === 'nagad' && (
                   <div className="mt-6 border-t border-[#52525b]/20 pt-6">
                     <div className="space-y-3 text-sm">
