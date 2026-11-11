@@ -244,14 +244,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. SHOP BY CATEGORY */}
+      {/* 3. SHOP BY CATEGORY (Expanded: Tops, Pants, Jackets, Denim) */}
       <section className="w-full bg-[#0a0a0a] py-16 md:py-20">
         <div className="container mx-auto px-4">
           <h2 className="text-sm md:text-base font-black tracking-[0.3em] uppercase text-center text-[#f4f4f5] mb-12 md:mb-16">
             SHOP BY CATEGORY
           </h2>
           
-          <div className="grid grid-cols-2 gap-4 md:gap-6 max-w-2xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
+            {/* Tops */}
             <Link href="/shop?category=tops" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                 <img src="/yellowtop.webp" alt="Tops" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -262,6 +263,7 @@ export default function Home() {
               </div>
             </Link>
 
+            {/* Pants */}
             <Link href="/shop?category=pants" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
                 <img src="/ntnpantie.webp" alt="Pants" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -269,6 +271,28 @@ export default function Home() {
               </div>
               <div className="text-center mt-4">
                 <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">PANTS</h3>
+              </div>
+            </Link>
+
+            {/* Jackets (New) */}
+            <Link href="/shop?category=jackets" className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img src="/feraljacket.jpg" alt="Jackets" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
+              </div>
+              <div className="text-center mt-4">
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">JACKETS</h3>
+              </div>
+            </Link>
+
+            {/* Denim (New) */}
+            <Link href="/shop?category=denim" className="group cursor-pointer">
+              <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
+                <img src="/denimferal.jpg" alt="Denim" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/20 transition-all duration-300" />
+              </div>
+              <div className="text-center mt-4">
+                <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">DENIM</h3>
               </div>
             </Link>
           </div>
