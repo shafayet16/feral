@@ -285,7 +285,7 @@ export default function Home() {
             {/* Denim */}
             <Link href="/shop?category=denim" className="group cursor-pointer">
               <div className="relative aspect-[3/4] overflow-hidden bg-[#18181b]">
-                <img src="/denimferal.jpg" alt="Denim" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <img src="/firemen.png" alt="Denim" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
               </div>
               <div className="text-center mt-4">
                 <h3 className="text-sm md:text-base font-bold uppercase tracking-wider text-[#f4f4f5] group-hover:text-[#a1a1aa] transition-colors">DENIM</h3>
