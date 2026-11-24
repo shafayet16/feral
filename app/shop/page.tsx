@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
@@ -17,12 +17,13 @@ const R2_PUBLIC_URL = (
 
 // Normalizes any image input (array, legacy URL, or filename) into a valid R2 public URL
 const formatImageUrl = (item: any): string => {
-  const rawUrl = (item.images && Array.isArray(item.images) && item.images.length > 0 && item.images[0]) || item.image;
-  
+  const rawUrl =
+    (item.images && Array.isArray(item.images) && item.images.length > 0 && item.images[0]) ||
+    item.image;
+
   if (!rawUrl || typeof rawUrl !== 'string') return '/feralshirt1.png';
-  
+
   if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-    // Automatically translate old Supabase links if any linger in DB
     if (rawUrl.includes('/storage/v1/object/public/product-images/')) {
       const filename = rawUrl.split('/product-images/')[1];
       return `${R2_PUBLIC_URL}/products/${filename}`;
@@ -30,7 +31,6 @@ const formatImageUrl = (item: any): string => {
     return rawUrl;
   }
 
-  // Handle relative paths or filenames
   const cleanPath = rawUrl.replace(/^\//, '');
   if (cleanPath.startsWith('products/')) {
     return `${R2_PUBLIC_URL}/${cleanPath}`;
@@ -50,25 +50,53 @@ type Product = {
   in_stock: boolean;
 };
 
+const normalizeCategory = (raw: string | null): string => {
+  const val = (raw || 'all').toLowerCase().trim();
+  if (val === 'denim' || val === 'denims') return 'denims';
+  if (val === 'top' || val === 'tops') return 'tops';
+  if (val === 'pant' || val === 'pants') return 'pants';
+  if (val === 'jacket' || val === 'jackets') return 'jackets';
+  if (val === 'bestseller' || val === 'bestsellers') return 'bestsellers';
+  return val || 'all';
+};
+
+const getCategoryVariants = (cat: string): string[] => {
+  switch (cat) {
+    case 'denims':
+      return ['denim', 'denims', 'Denim', 'Denims', 'DENIM', 'DENIMS'];
+    case 'tops':
+      return ['top', 'tops', 'Top', 'Tops', 'TOPS'];
+    case 'pants':
+      return ['pant', 'pants', 'Pant', 'Pants', 'PANTS'];
+    case 'jackets':
+      return ['jacket', 'jackets', 'Jacket', 'Jackets', 'JACKETS'];
+    default:
+      return [cat];
+  }
+};
+
 function ShopContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('all');
-
-  const [page, setPage] = useState(0);
-  const [dbHasMore, setDbHasMore] = useState(true);
-  const PAGE_SIZE = 16; 
 
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
 
+  const [activeCategory, setActiveCategory] = useState<string>(() =>
+    normalizeCategory(categoryParam)
+  );
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+
+  const PAGE_SIZE = 8;
+
+  // Sync URL ?category=... changes into activeCategory
   useEffect(() => {
-    if (categoryParam) {
-      setActiveCategory(categoryParam.toLowerCase());
-    } else {
-      setActiveCategory('all');
-    }
+    const normalized = normalizeCategory(categoryParam);
+    setActiveCategory(normalized);
+    setPage(0);
   }, [categoryParam]);
 
   useEffect(() => {
@@ -77,44 +105,71 @@ function ShopContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const fetchProducts = async (pageNum: number) => {
-    setLoading(true);
-    const from = pageNum * PAGE_SIZE;
-    const to = from + PAGE_SIZE; 
+  const fetchProductsForCategory = useCallback(
+    async (category: string, pageNum: number, append: boolean) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
 
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('id', { ascending: true })
-      .range(from, to);
+      const from = pageNum * PAGE_SIZE;
+      const to = from + PAGE_SIZE; // Fetch 1 extra item to check if more exist
 
-    if (error) {
-      console.error('Error fetching products:', error);
-      setDbHasMore(false);
+      let query = supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (category === 'bestsellers') {
+        query = query.eq('is_bestseller', true);
+      } else if (category !== 'all') {
+        const variants = getCategoryVariants(category);
+        query = query.in('category', variants);
+      }
+
+      const { data, error } = await query.range(from, to);
+
+      if (error) {
+        console.error('Error fetching products:', error);
+        if (!append) setProducts([]);
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      const rows = data || [];
+      const moreAvailable = rows.length > PAGE_SIZE;
+
+      const formatted: Product[] = rows.slice(0, PAGE_SIZE).map((item: any) => ({
+        ...item,
+        image: formatImageUrl(item),
+      }));
+
+      setHasMore(moreAvailable);
+      setProducts(prev => {
+        if (!append) return formatted;
+        const existingIds = new Set(prev.map(p => p.id));
+        const uniqueNew = formatted.filter(p => !existingIds.has(p.id));
+        return [...prev, ...uniqueNew];
+      });
+
       setLoading(false);
-      return;
-    }
-
-    const hasMoreItems = data.length > PAGE_SIZE;
-    
-    // Map items to sanitize all image URLs to Cloudflare R2
-    const itemsToAdd = data.slice(0, PAGE_SIZE).map((item: any) => ({
-      ...item,
-      image: formatImageUrl(item)
-    }));
-
-    setDbHasMore(hasMoreItems);
-    setProducts(prev => (pageNum === 0 ? itemsToAdd : [...prev, ...itemsToAdd]));
-    setLoading(false);
-  };
+      setLoadingMore(false);
+    },
+    []
+  );
 
   useEffect(() => {
-    fetchProducts(page);
-  }, [page]);
+    fetchProductsForCategory(activeCategory, page, page > 0);
+  }, [activeCategory, page, fetchProductsForCategory]);
 
-  useEffect(() => {
+  const handleSelectCategory = (catId: string) => {
+    const normalized = normalizeCategory(catId);
+    setActiveCategory(normalized);
     setPage(0);
-  }, [activeCategory]);
+  };
 
   const categories = [
     { id: 'all', name: 'ALL' },
@@ -124,20 +179,6 @@ function ShopContent() {
     { id: 'jackets', name: 'JACKETS' },
     { id: 'denims', name: 'DENIMS' },
   ];
-
-  const filteredProducts = products.filter(product => {
-    if (activeCategory === 'all') return true;
-    if (activeCategory === 'bestsellers') return product.is_bestseller === true;
-    return (
-      product.categories?.includes(activeCategory) ||
-      product.category?.toLowerCase() === activeCategory
-    );
-  });
-
-  const VISIBLE_COUNT = 8;
-  const visibleProducts = filteredProducts.slice(0, VISIBLE_COUNT);
-
-  const showLoadMoreButton = filteredProducts.length > VISIBLE_COUNT || (dbHasMore && filteredProducts.length >= VISIBLE_COUNT);
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] font-sans antialiased overflow-x-hidden">
@@ -218,7 +259,8 @@ function ShopContent() {
             {categories.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                type="button"
+                onClick={() => handleSelectCategory(cat.id)}
                 className={`text-xs md:text-sm font-bold uppercase tracking-wider transition-all duration-300 ${
                   activeCategory === cat.id
                     ? 'text-white border-b border-white pb-1'
@@ -235,18 +277,18 @@ function ShopContent() {
       {/* PRODUCT GRID */}
       <section className="w-full bg-[#0a0a0a] py-12 md:py-16">
         <div className="container mx-auto px-4">
-          {loading && visibleProducts.length === 0 ? (
+          {loading && products.length === 0 ? (
             <div className="flex justify-center items-center py-20">
               <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
             </div>
-          ) : visibleProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-[#a1a1aa]">No products found in this category.</p>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                {visibleProducts.map(product => (
+                {products.map(product => (
                   <Link
                     key={product.id}
                     href={`/product/${product.id}`}
@@ -269,24 +311,25 @@ function ShopContent() {
                         {product.name}
                       </h3>
                       <p className="text-xs text-[#a1a1aa] mt-1">
-                        ৳{product.price !== null && product.price !== undefined ? product.price.toLocaleString() : '0'}
+                        ৳
+                        {product.price !== null && product.price !== undefined
+                          ? product.price.toLocaleString()
+                          : '0'}
                       </p>
                     </div>
                   </Link>
                 ))}
               </div>
 
-              {showLoadMoreButton && (
+              {hasMore && (
                 <div className="text-center mt-10">
                   <button
-                    onClick={() => {
-                      if (filteredProducts.length <= VISIBLE_COUNT && dbHasMore) {
-                        setPage(prev => prev + 1);
-                      }
-                    }}
-                    className="border border-[#52525b]/50 text-[#f4f4f5] px-8 py-3 text-xs uppercase tracking-wider hover:border-white transition"
+                    type="button"
+                    disabled={loadingMore}
+                    onClick={() => setPage(prev => prev + 1)}
+                    className="border border-[#52525b]/50 text-[#f4f4f5] px-8 py-3 text-xs uppercase tracking-wider hover:border-white transition disabled:opacity-50"
                   >
-                    {loading ? 'Loading...' : 'Load More'}
+                    {loadingMore ? 'Loading...' : 'Load More'}
                   </button>
                 </div>
               )}
@@ -298,13 +341,13 @@ function ShopContent() {
       {/* FOOTER */}
       <footer className="w-full bg-[#0a0a0a] pt-16 pb-14 text-center flex flex-col items-center relative border-t border-[#52525b]/20">
         <div className="w-[90%] max-w-5xl h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent mb-10" />
-        
+
         <div className="flex justify-center mb-8">
-          <a 
-            href="https://instagram.com/feral.untamed" 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="w-12 h-12 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95" 
+          <a
+            href="https://instagram.com/feral.untamed"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-12 h-12 flex items-center justify-center text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[#52525b]/20 rounded-full transition-all duration-300 hover:-translate-y-1 active:scale-95"
             aria-label="Instagram"
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -314,8 +357,12 @@ function ShopContent() {
         </div>
 
         <div className="leading-relaxed text-[10px] md:text-xs tracking-[0.25em] text-[#52525b] uppercase space-y-2">
-          <p className="font-bold text-[#71717a] transition-all duration-300 hover:text-[#a1a1aa] active:text-white">© 2026 FERAL. All rights reserved.</p>
-          <p className="text-[9px] font-mono lowercase tracking-normal text-[#52525b]/70 transition-all duration-300 hover:text-[#71717a] active:text-white">made by shafbitz</p>
+          <p className="font-bold text-[#71717a] transition-all duration-300 hover:text-[#a1a1aa] active:text-white">
+            © 2026 FERAL. All rights reserved.
+          </p>
+          <p className="text-[9px] font-mono lowercase tracking-normal text-[#52525b]/70 transition-all duration-300 hover:text-[#71717a] active:text-white">
+            made by shafbitz
+          </p>
         </div>
       </footer>
     </div>
@@ -324,11 +371,13 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] flex justify-center items-center font-mono text-xs tracking-widest">
-        LOADING COLLECTION VALUATION...
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen w-full bg-[#0a0a0a] text-[#f4f4f5] flex justify-center items-center font-mono text-xs tracking-widest">
+          LOADING COLLECTION VALUATION...
+        </div>
+      }
+    >
       <ShopContent />
     </Suspense>
   );
